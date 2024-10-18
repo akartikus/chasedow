@@ -28,10 +28,10 @@ Built with:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/shadow-runner
+git clone https://github.com/akartikus/chasedow
 
 # Navigate to the project directory
-cd shadow-runner
+cd chasedow
 
 # Build and run the game
 cargo run --release
