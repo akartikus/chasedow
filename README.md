@@ -62,19 +62,13 @@ This project represents my journey into Rust programming through game developmen
 ## 👥 Contributing
 
 While this is primarily a learning project, suggestions and improvements are welcome! Feel free to:
-1. Fork the repository
+1. Clone the repository
 2. Create a feature branch
 3. Submit a Pull Request
 
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Thanks to the Quads Jam organizers for the motivation
-- The Rust and Macroquad communities for their excellent documentation
-- Everyone who provided feedback and support during development
 
 ---
 
