@@ -100,7 +100,7 @@ impl Shadow {
     }
 
     //todo collisions
-/*    fn collides_with_player(&self, player: &Player) -> bool {
+    fn collides_with_player(&self, player: &Player) -> bool {
         if let Some(shadow_pos) = self.positions.first() {
             let shadow_rect = Rect::new(
                 shadow_pos.x,
@@ -118,7 +118,7 @@ impl Shadow {
         } else {
             false
         }
-    }*/
+    }
 }
 
 impl Game {
@@ -161,12 +161,14 @@ async fn main() {
     loop {
         if !game_over {
             game.update(get_frame_time());
-
+            if game.shadow.collides_with_player(&game.player) {
+                game_over = true;
+            }
             game.draw();
         }else {
             clear_background(GRAY);
             draw_text(
-                &format!("Game Over! Final Score: {:.1}", game.score),
+                &format!("Game Over! Final Score: {:.1}, press R to restart", game.score),
                 screen_width() / 4.0,
                 screen_height() / 2.0,
                 50.0,
