@@ -1,141 +1,68 @@
-use macroquad::input::KeyCode::{Left, Right, Space};
 use macroquad::prelude::*;
+use macroquad_platformer::*;
 
-const PLAYER_SPEED: f32 = 200.0;
-const PLAYER_SIZE: Vec2 = Vec2::new(30.0, 30.0);
-const JUMP_FORCE: f32 = -300.0;
-const GRAVITY: f32 = 800.0;
+const GRAVITY: f32 = 500.0;
+const PLAYER_SPEED: f32 = 100.0;
+const JUMP_FORCE: f32 = -225.0;
+const PLATFORM_SPEED: f32 = 50.0;
+
+// Colors for the rectangles
+const PLAYER_COLOR: Color = BLUE;
+const PLATFORM_COLOR: Color = GREEN;
+const STATIC_PLATFORM_COLOR: Color = GRAY;
 
 struct Player {
-    pos: Vec2,
-    vel: Vec2,
-    on_ground: bool,
+    collider: Actor,
+    speed: Vec2,
+    size: Vec2,
+}
+
+impl Player {
+    fn new(world: &mut World) -> Self {
+        let size = vec2(20.0, 20.0);
+        Self {
+            collider: world.add_actor(vec2(250.0, 80.0), size.x as i32, size.y as i32),
+            speed: vec2(0., 0.),
+            size,
+        }
+    }
+
+    fn update(&mut self, world: &mut World) {
+        let pos = world.actor_pos(self.collider);
+        let on_ground = world.collide_check(self.collider, pos + vec2(0., 1.));
+
+        // Apply gravity when in air
+        if !on_ground {
+            self.speed.y += GRAVITY * get_frame_time();
+        }
+
+        // Handle horizontal movement
+        self.speed.x = match (is_key_down(KeyCode::Right), is_key_down(KeyCode::Left)) {
+            (true, false) => PLAYER_SPEED,
+            (false, true) => -PLAYER_SPEED,
+            _ => 0.0,
+        };
+
+        // Handle jumping
+        if is_key_pressed(KeyCode::Space) && on_ground {
+            self.speed.y = JUMP_FORCE;
+        }
+
+        // Apply movement
+        world.move_h(self.collider, self.speed.x * get_frame_time());
+        world.move_v(self.collider, self.speed.y * get_frame_time());
+    }
+
+    fn draw(&self, world: &World) {
+        let pos = world.actor_pos(self.collider);
+        draw_rectangle(pos.x, pos.y, self.size.x, self.size.y, PLAYER_COLOR);
+    }
 }
 
 struct Shadow {
     positions: Vec<Vec2>,
     delay_frames: usize,
 }
-
-struct Platform {
-    rect: Rect,
-    color: Color,
-}
-
-struct Game {
-    player: Player,
-    shadow: Shadow,
-    platforms: Vec<Platform>,
-    score: f32,
-}
-
-impl Player {
-    fn new() -> Self {
-        Self {
-            pos: Vec2::new(100., 100.),
-            vel: Default::default(),
-            on_ground: false,
-        }
-    }
-
-    fn update(&mut self, dt: f32, platforms: &[Platform]) {
-        // Horizontal movement
-        let mut input = 0.;
-        if is_key_down(Right) { input += 1.; }
-        if is_key_down(Left) { input -= 1.; }
-
-        self.vel.x = input * PLAYER_SPEED;
-
-        // Jumping
-        if is_key_pressed(Space) && self.on_ground {
-            self.on_ground = false;
-            self.vel.y = JUMP_FORCE;
-        }
-
-        // Apply gravity
-        if !self.on_ground {
-            self.vel.y += GRAVITY * dt; // is dt necessary here
-        }
-
-        // Update position and handle collisions
-        let new_pos = self.pos + self.vel * dt;
-        // fixme
-        self.handle_collision(new_pos, platforms);
-
-        // Simple ground collision
-        // fixme use real ground
-        if self.pos.y > screen_height() - PLAYER_SIZE.y {
-            self.pos.y = screen_height() - PLAYER_SIZE.y;
-            self.vel.y = 0.0;
-            self.on_ground = true;
-        }
-    }
-
-    fn handle_collision(&mut self, new_pos: Vec2, platforms: &[Platform]) {
-        let mut final_pos = new_pos;
-        self.on_ground = false;
-
-        let player_rect = Rect::new(
-            new_pos.x,
-            new_pos.y,
-            PLAYER_SIZE.x,
-            PLAYER_SIZE.y,
-        );
-
-        // Check collision with each platform
-        for platform in platforms {
-            if player_rect.overlaps(&platform.rect) {
-                // Determine which side of the platform we hit
-                let prev_rect = Rect::new(
-                    self.pos.x,
-                    self.pos.y,
-                    PLAYER_SIZE.x,
-                    PLAYER_SIZE.y,
-                );
-
-                // Vertical collision
-                if self.vel.y > 0.0 && prev_rect.bottom() <= platform.rect.y {
-                    // Landing on top of platform
-                    final_pos.y = platform.rect.y - PLAYER_SIZE.y;
-                    self.vel.y = 0.0;
-                    self.on_ground = true;
-                } else if self.vel.y < 0.0 && prev_rect.top() >= platform.rect.bottom() {
-                    // Hitting platform from below
-                    final_pos.y = platform.rect.bottom();
-                    self.vel.y = 0.0;
-                }
-                // Horizontal collision
-                else if prev_rect.right() <= platform.rect.x {
-                    // Hitting platform from left
-                    final_pos.x = platform.rect.x - PLAYER_SIZE.x;
-                } else if prev_rect.x >= platform.rect.right() {
-                    // Hitting platform from right
-                    final_pos.x = platform.rect.right();
-                }
-            }
-        }
-
-        // Ground collision (bottom of screen)
-        if final_pos.y > screen_height() - PLAYER_SIZE.y {
-            final_pos.y = screen_height() - PLAYER_SIZE.y;
-            self.vel.y = 0.0;
-            self.on_ground = true;
-        }
-
-        self.pos = final_pos;
-    }
-
-    fn draw(&self) {
-        draw_rectangle(
-            self.pos.x,
-            self.pos.y,
-            PLAYER_SIZE.x,
-            PLAYER_SIZE.y,
-            WHITE
-        );
-    }
-}
-
 impl Shadow {
     fn new(delay_frames: usize) -> Self {
         Self {
@@ -154,27 +81,29 @@ impl Shadow {
             draw_rectangle(
                 pos.x,
                 pos.y,
-                PLAYER_SIZE.x,
-                PLAYER_SIZE.y,
-                Color::new(0.0, 0.0, 0.0, 0.8)
+                20., // Player size
+                20.,
+                Color::new(0.0, 0.0, 0.0, 0.8),
             );
         }
     }
 
     //todo collisions
-    fn collides_with_player(&self, player: &Player) -> bool {
+    fn collides_with_player(&self, player_pos: Vec2) -> bool {
+        const PLAYER_SIZE: Vec2 = vec2(20.0, 20.0);
+
         if let Some(shadow_pos) = self.positions.first() {
             let shadow_rect = Rect::new(
                 shadow_pos.x,
                 shadow_pos.y,
                 PLAYER_SIZE.x,
-                PLAYER_SIZE.y
+                PLAYER_SIZE.y,
             );
             let player_rect = Rect::new(
-                player.pos.x,
-                player.pos.y,
+                player_pos.x,
+                player_pos.y,
                 PLAYER_SIZE.x,
-                PLAYER_SIZE.y
+                PLAYER_SIZE.y,
             );
             shadow_rect.overlaps(&player_rect)
         } else {
@@ -183,103 +112,87 @@ impl Shadow {
     }
 }
 
+struct Platform {
+    collider: Solid,
+    speed: f32,
+    size: Vec2,
+}
+
 impl Platform {
-    fn new(x: f32, y: f32, width: f32, height: f32) -> Self {
+    fn new(world: &mut World, pos: Vec2, size: Vec2, is_moving: bool) -> Self {
         Self {
-            rect: Rect::new(x, y, width, height),
-            color: DARKGRAY,
+            collider: world.add_solid(pos, size.x as i32, size.y as i32),
+            speed: if is_moving { PLATFORM_SPEED } else { 0.0 },
+            size,
         }
     }
 
-    fn draw(&self) {
-        draw_rectangle(
-            self.rect.x,
-            self.rect.y,
-            self.rect.w,
-            self.rect.h,
-            self.color,
-        );
-    }
-}
+    fn update(&mut self, world: &mut World) {
+        if self.speed != 0.0 {
+            world.solid_move(self.collider, self.speed * get_frame_time(), 0.0);
+            let pos = world.solid_pos(self.collider);
 
-impl Game {
-    fn new() -> Self {
-        // Create some example platforms
-        let mut platforms = Vec::new();
-
-        // Add some platforms for a basic level
-        platforms.push(Platform::new(300.0, 300.0, 200.0, 20.0));  // Long platform
-        platforms.push(Platform::new(500.0, 250.0, 100.0, 20.0));  // Short platform
-        platforms.push(Platform::new(300.0, 200.0, 150.0, 20.0));  // High platform
-        platforms.push(Platform::new(50.0, 350.0, 700.0, 20.0));   // Ground platform
-
-        Self {
-            player: Player::new(),
-            shadow: Shadow::new(30),
-            platforms,
-            score: 0.0,
-        }
-    }
-
-    fn update(&mut self, dt: f32) {
-        self.player.update(dt, &self.platforms);
-        self.shadow.update(self.player.pos);
-        self.score += dt;
-    }
-
-    fn draw(&self) {
-        clear_background(GRAY);
-
-        // Draw platforms
-        for platform in &self.platforms {
-            platform.draw();
-        }
-
-        self.player.draw();
-        self.shadow.draw();
-
-        // Draw score
-        draw_text(
-            &format!("Score: {:.1}", self.score),
-            10.0,
-            30.0,
-            30.0,
-            WHITE
-        );
-    }
-
-}
-
-#[macroquad::main("Chasedow runner")]
-async fn main() {
-    let mut game = Game::new();
-    let mut game_over = false;
-
-    loop {
-        if !game_over {
-            game.update(get_frame_time());
-
-            // fixme
-            // if game.shadow.collides_with_player(&game.player) {
-            //     game_over = true;
-            // }
-
-            game.draw();
-        }else {
-            clear_background(GRAY);
-            draw_text(
-                &format!("Game Over! Final Score: {:.1}, press R to restart", game.score),
-                screen_width() / 4.0,
-                screen_height() / 2.0,
-                50.0,
-                WHITE
-            );
-
-            if is_key_pressed(KeyCode::R) {
-                game = Game::new();
-                game_over = false;
+            if (self.speed > 1.0 && pos.x >= 220.0) || (self.speed < -1.0 && pos.x <= 150.0) {
+                self.speed *= -1.0;
             }
         }
-        next_frame().await;
+    }
+
+    fn draw(&self, world: &World) {
+        let pos = world.solid_pos(self.collider);
+        let color = if self.speed == 0.0 { STATIC_PLATFORM_COLOR } else { PLATFORM_COLOR };
+        draw_rectangle(pos.x, pos.y, self.size.x, self.size.y, color);
+    }
+}
+
+#[macroquad::main("Simple Platformer")]
+async fn main() {
+    let mut world = World::new();
+
+    // Create game objects
+    let mut player = Player::new(&mut world);
+
+    // Shadow
+    let shadow = Shadow::new(3);
+
+
+    // Create various platforms
+    let mut platforms = vec![
+        // Ground platform
+        Platform::new(&mut world, vec2(0.0, 300.0), vec2(800.0, 20.0), false),
+
+        // Static platforms
+        Platform::new(&mut world, vec2(50.0, 200.0), vec2(300.0, 20.0), false),
+        Platform::new(&mut world, vec2(300.0, 150.0), vec2(200.0, 20.0), false),
+
+        // Moving platform
+        Platform::new(&mut world, vec2(170.0, 250.0), vec2(200.0, 20.0), true),
+    ];
+
+    // Setup camera
+    let camera = Camera2D::from_display_rect(Rect::new(0.0, 300.0, 800.0, -300.0));
+
+    // Game loop
+    loop {
+        clear_background(LIGHTGRAY);
+        set_camera(&camera);
+
+        // Update and draw platforms
+        for platform in platforms.iter_mut() {
+            platform.update(&mut world);
+            platform.draw(&world);
+        }
+
+
+        // Update and draw player
+        player.update(&mut world);
+
+        player.draw(&world);
+        shadow.draw(player);
+
+        // Draw FPS counter
+        draw_text(&format!("FPS: {}", get_fps()), 10.0, 20.0, 20.0, WHITE);
+
+        next_frame().await
     }
 }
