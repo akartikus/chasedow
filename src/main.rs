@@ -17,9 +17,15 @@ struct Shadow {
     delay_frames: usize,
 }
 
+struct Platform {
+    rect: Rect,
+    color: Color,
+}
+
 struct Game {
     player: Player,
     shadow: Shadow,
+    platforms: Vec<Platform>,
     score: f32,
 }
 
@@ -32,7 +38,7 @@ impl Player {
         }
     }
 
-    fn update(&mut self, dt: f32) {
+    fn update(&mut self, dt: f32, platforms: &[Platform]) {
         // Horizontal movement
         let mut input = 0.;
         if is_key_down(Right) { input += 1.; }
@@ -51,8 +57,10 @@ impl Player {
             self.vel.y += GRAVITY * dt; // is dt necessary here
         }
 
-        // Update position
-        self.pos += self.vel * dt;
+        // Update position and handle collisions
+        let new_pos = self.pos + self.vel * dt;
+        // fixme
+        self.handle_collision(new_pos, platforms);
 
         // Simple ground collision
         // fixme use real ground
@@ -61,6 +69,60 @@ impl Player {
             self.vel.y = 0.0;
             self.on_ground = true;
         }
+    }
+
+    fn handle_collision(&mut self, new_pos: Vec2, platforms: &[Platform]) {
+        let mut final_pos = new_pos;
+        self.on_ground = false;
+
+        let player_rect = Rect::new(
+            new_pos.x,
+            new_pos.y,
+            PLAYER_SIZE.x,
+            PLAYER_SIZE.y,
+        );
+
+        // Check collision with each platform
+        for platform in platforms {
+            if player_rect.overlaps(&platform.rect) {
+                // Determine which side of the platform we hit
+                let prev_rect = Rect::new(
+                    self.pos.x,
+                    self.pos.y,
+                    PLAYER_SIZE.x,
+                    PLAYER_SIZE.y,
+                );
+
+                // Vertical collision
+                if self.vel.y > 0.0 && prev_rect.bottom() <= platform.rect.y {
+                    // Landing on top of platform
+                    final_pos.y = platform.rect.y - PLAYER_SIZE.y;
+                    self.vel.y = 0.0;
+                    self.on_ground = true;
+                } else if self.vel.y < 0.0 && prev_rect.top() >= platform.rect.bottom() {
+                    // Hitting platform from below
+                    final_pos.y = platform.rect.bottom();
+                    self.vel.y = 0.0;
+                }
+                // Horizontal collision
+                else if prev_rect.right() <= platform.rect.x {
+                    // Hitting platform from left
+                    final_pos.x = platform.rect.x - PLAYER_SIZE.x;
+                } else if prev_rect.x >= platform.rect.right() {
+                    // Hitting platform from right
+                    final_pos.x = platform.rect.right();
+                }
+            }
+        }
+
+        // Ground collision (bottom of screen)
+        if final_pos.y > screen_height() - PLAYER_SIZE.y {
+            final_pos.y = screen_height() - PLAYER_SIZE.y;
+            self.vel.y = 0.0;
+            self.on_ground = true;
+        }
+
+        self.pos = final_pos;
     }
 
     fn draw(&self) {
@@ -121,23 +183,58 @@ impl Shadow {
     }
 }
 
+impl Platform {
+    fn new(x: f32, y: f32, width: f32, height: f32) -> Self {
+        Self {
+            rect: Rect::new(x, y, width, height),
+            color: DARKGRAY,
+        }
+    }
+
+    fn draw(&self) {
+        draw_rectangle(
+            self.rect.x,
+            self.rect.y,
+            self.rect.w,
+            self.rect.h,
+            self.color,
+        );
+    }
+}
+
 impl Game {
     fn new() -> Self {
+        // Create some example platforms
+        let mut platforms = Vec::new();
+
+        // Add some platforms for a basic level
+        platforms.push(Platform::new(300.0, 300.0, 200.0, 20.0));  // Long platform
+        platforms.push(Platform::new(500.0, 250.0, 100.0, 20.0));  // Short platform
+        platforms.push(Platform::new(300.0, 200.0, 150.0, 20.0));  // High platform
+        platforms.push(Platform::new(50.0, 350.0, 700.0, 20.0));   // Ground platform
+
         Self {
             player: Player::new(),
-            shadow: Shadow::new(30),  // 0.5 second delay at 60 FPS
+            shadow: Shadow::new(30),
+            platforms,
             score: 0.0,
         }
     }
 
     fn update(&mut self, dt: f32) {
-        self.player.update(dt);
+        self.player.update(dt, &self.platforms);
         self.shadow.update(self.player.pos);
         self.score += dt;
     }
 
     fn draw(&self) {
         clear_background(GRAY);
+
+        // Draw platforms
+        for platform in &self.platforms {
+            platform.draw();
+        }
+
         self.player.draw();
         self.shadow.draw();
 
@@ -161,9 +258,12 @@ async fn main() {
     loop {
         if !game_over {
             game.update(get_frame_time());
-            if game.shadow.collides_with_player(&game.player) {
-                game_over = true;
-            }
+
+            // fixme
+            // if game.shadow.collides_with_player(&game.player) {
+            //     game_over = true;
+            // }
+
             game.draw();
         }else {
             clear_background(GRAY);
