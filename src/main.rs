@@ -1,15 +1,90 @@
 use macroquad::prelude::*;
 use macroquad_platformer::*;
 
+// Game Constants
 const GRAVITY: f32 = 500.0;
 const PLAYER_SPEED: f32 = 100.0;
 const JUMP_FORCE: f32 = -225.0;
 const PLATFORM_SPEED: f32 = 50.0;
 
-// Colors for the rectangles
+// Size Constants
+const PLAYER_SIZE: Vec2 = vec2(20.0, 20.0);
+const GROUND_SIZE: Vec2 = vec2(800.0, 20.0);
+const PLATFORM_SIZE: Vec2 = vec2(200.0, 20.0);
+
+// Colors
 const PLAYER_COLOR: Color = BLUE;
 const PLATFORM_COLOR: Color = GREEN;
 const STATIC_PLATFORM_COLOR: Color = GRAY;
+const SHADOW_COLOR: Color = Color::new(0.0, 0.0, 0.0, 0.8);
+const BACKGROUND_COLOR: Color = LIGHTGRAY;
+
+// Game State
+struct GameState {
+    world: World,
+    player: Player,
+    shadow: Shadow,
+    platforms: Vec<Platform>,
+    score: f32,
+}
+
+impl GameState {
+    fn new() -> Self {
+        let mut world = World::new();
+        let player = Player::new(&mut world);
+        let shadow = Shadow::new(25);
+        let platforms = create_platforms(&mut world);
+
+        Self {
+            world,
+            player,
+            shadow,
+            platforms,
+            score: 0.0,
+        }
+    }
+
+    fn update(&mut self) {
+        // Update platforms
+        for platform in self.platforms.iter_mut() {
+            platform.update(&mut self.world);
+        }
+
+        // Update player
+        self.player.update(&mut self.world);
+
+        // Update shadow
+        let player_pos = self.world.actor_pos(self.player.collider);
+        self.shadow.update(player_pos);
+
+        // Check shadow collision
+        self.shadow.collides_with_player(player_pos);
+
+        // Update score
+        self.score += get_frame_time();
+    }
+
+    fn draw(&self) {
+        clear_background(BACKGROUND_COLOR);
+
+        // Draw platforms
+        for platform in &self.platforms {
+            platform.draw(&self.world);
+        }
+
+        // Draw shadow and player
+        self.shadow.draw();
+        self.player.draw(&self.world);
+
+        // Draw UI
+        self.draw_ui();
+    }
+
+    fn draw_ui(&self) {
+        draw_text(&format!("FPS: {}", get_fps()), 10.0, 20.0, 20.0, WHITE);
+        draw_text(&format!("Score: {:.0}", self.score), 10.0, 50.0, 20.0, WHITE);
+    }
+}
 
 struct Player {
     collider: Actor,
@@ -19,11 +94,10 @@ struct Player {
 
 impl Player {
     fn new(world: &mut World) -> Self {
-        let size = vec2(20.0, 20.0);
         Self {
-            collider: world.add_actor(vec2(250.0, 80.0), size.x as i32, size.y as i32),
-            speed: vec2(0., 0.),
-            size,
+            collider: world.add_actor(vec2(250.0, 80.0), PLAYER_SIZE.x as i32, PLAYER_SIZE.y as i32),
+            speed: Vec2::ZERO,
+            size: PLAYER_SIZE,
         }
     }
 
@@ -31,6 +105,11 @@ impl Player {
         let pos = world.actor_pos(self.collider);
         let on_ground = world.collide_check(self.collider, pos + vec2(0., 1.));
 
+        self.handle_movement(on_ground);
+        self.apply_movement(world);
+    }
+
+    fn handle_movement(&mut self, on_ground: bool) {
         // Apply gravity when in air
         if !on_ground {
             self.speed.y += GRAVITY * get_frame_time();
@@ -47,8 +126,9 @@ impl Player {
         if is_key_pressed(KeyCode::Space) && on_ground {
             self.speed.y = JUMP_FORCE;
         }
+    }
 
-        // Apply movement
+    fn apply_movement(&mut self, world: &mut World) {
         world.move_h(self.collider, self.speed.x * get_frame_time());
         world.move_v(self.collider, self.speed.y * get_frame_time());
     }
@@ -63,6 +143,7 @@ struct Shadow {
     positions: Vec<Vec2>,
     delay_frames: usize,
 }
+
 impl Shadow {
     fn new(delay_frames: usize) -> Self {
         Self {
@@ -78,33 +159,14 @@ impl Shadow {
 
     fn draw(&self) {
         if let Some(pos) = self.positions.first() {
-            draw_rectangle(
-                pos.x,
-                pos.y,
-                20., // Player size
-                20.,
-                Color::new(0.0, 0.0, 0.0, 0.8),
-            );
+            draw_rectangle(pos.x, pos.y, PLAYER_SIZE.x, PLAYER_SIZE.y, SHADOW_COLOR);
         }
     }
 
-    //todo collisions
     fn collides_with_player(&self, player_pos: Vec2) -> bool {
-        const PLAYER_SIZE: Vec2 = vec2(20.0, 20.0);
-
         if let Some(shadow_pos) = self.positions.first() {
-            let shadow_rect = Rect::new(
-                shadow_pos.x,
-                shadow_pos.y,
-                PLAYER_SIZE.x,
-                PLAYER_SIZE.y,
-            );
-            let player_rect = Rect::new(
-                player_pos.x,
-                player_pos.y,
-                PLAYER_SIZE.x,
-                PLAYER_SIZE.y,
-            );
+            let shadow_rect = Rect::new(shadow_pos.x, shadow_pos.y, PLAYER_SIZE.x, PLAYER_SIZE.y);
+            let player_rect = Rect::new(player_pos.x, player_pos.y, PLAYER_SIZE.x, PLAYER_SIZE.y);
             shadow_rect.overlaps(&player_rect)
         } else {
             false
@@ -145,71 +207,25 @@ impl Platform {
     }
 }
 
-#[macroquad::main("Simple Platformer")]
-async fn main() {
-    let mut world = World::new();
-
-    // Create game objects
-    let mut player = Player::new(&mut world);
-
-    // Shadow
-    let mut shadow = Shadow::new(25);
-
-
-    // Create various platforms
-    let mut platforms = vec![
+fn create_platforms(world: &mut World) -> Vec<Platform> {
+    vec![
         // Ground platform
-        Platform::new(&mut world, vec2(0.0, 300.0), vec2(800.0, 20.0), false),
-
+        Platform::new(world, vec2(0.0, 300.0), GROUND_SIZE, false),
         // Static platforms
-        Platform::new(&mut world, vec2(50.0, 200.0), vec2(300.0, 20.0), false),
-        Platform::new(&mut world, vec2(300.0, 150.0), vec2(200.0, 20.0), false),
-
+        Platform::new(world, vec2(50.0, 200.0), PLATFORM_SIZE, false),
+        Platform::new(world, vec2(300.0, 150.0), PLATFORM_SIZE, false),
         // Moving platform
-        Platform::new(&mut world, vec2(500.0, 250.0), vec2(200.0, 20.0), true),
-    ];
+        Platform::new(world, vec2(500.0, 250.0), PLATFORM_SIZE, true),
+    ]
+}
 
+#[macroquad::main("Chasedow")]
+async fn main() {
+    let mut game = GameState::new();
 
-    let mut score = 0.;
-
-    // Setup camera
-    // fixme
-    // let camera = Camera2D::from_display_rect(Rect::new(0.0, 300.0, 800.0, -300.0));
-
-    // Game loop
     loop {
-        clear_background(LIGHTGRAY);
-        // fixme
-        // set_camera(&camera);
-
-        // Update and draw platforms
-        for platform in platforms.iter_mut() {
-            platform.update(&mut world);
-            platform.draw(&world);
-        }
-
-
-        // Update and draw player
-        player.update(&mut world);
-        player.draw(&world);
-
-
-        // Update shadow with player position
-        let player_pos = world.actor_pos(player.collider);
-        shadow.update(player_pos);
-        shadow.draw();
-
-        // Check shadow collision
-        shadow.collides_with_player(player_pos);
-
-        score= score + 1. * get_frame_time();
-
-        // Draw FPS counter
-        draw_text(&format!("FPS: {}", get_fps()), 10.0, 20.0, 20.0, WHITE);
-
-        // Draw score
-        draw_text(&format!("Score: {:.0}", score), 10.0, 50.0, 20.0, WHITE);
-
+        game.update();
+        game.draw();
         next_frame().await
     }
 }
