@@ -19,6 +19,14 @@ const STATIC_PLATFORM_COLOR: Color = GRAY;
 const SHADOW_COLOR: Color = Color::new(0.0, 0.0, 0.0, 0.8);
 const BACKGROUND_COLOR: Color = LIGHTGRAY;
 
+#[derive(PartialEq)]
+enum GameScreen {
+    MainMenu,
+    Playing,
+    Paused,
+    GameOver,
+}
+
 // Game State
 struct GameState {
     world: World,
@@ -26,6 +34,9 @@ struct GameState {
     shadow: Shadow,
     platforms: Vec<Platform>,
     score: f32,
+    screen: GameScreen,
+    high_score: f32,
+
 }
 
 impl GameState {
@@ -41,48 +52,262 @@ impl GameState {
             shadow,
             platforms,
             score: 0.0,
+            screen: GameScreen::MainMenu,
+            high_score: 0.0,
         }
     }
 
+    fn reset_game(&mut self) {
+        // Update high score before resetting
+        if self.score > self.high_score {
+            self.high_score = self.score;
+        }
+
+        // Reset world and game elements
+        self.world = World::new();
+        self.player = Player::new(&mut self.world);
+        self.shadow = Shadow::new(25);
+        self.platforms = create_platforms(&mut self.world);
+        self.score = 0.0;
+    }
+
     fn update(&mut self) {
-        // Update platforms
+        match self.screen {
+            GameScreen::Playing => self.update_playing(),
+            GameScreen::Paused => self.update_paused(),
+            GameScreen::MainMenu => self.update_main_menu(),
+            GameScreen::GameOver => self.update_game_over(),
+        }
+    }
+
+    fn update_playing(&mut self) {
+        // Check for pause
+        if is_key_pressed(KeyCode::Escape) {
+            self.screen = GameScreen::Paused;
+            return;
+        }
+
+        // Update game elements
         for platform in self.platforms.iter_mut() {
             platform.update(&mut self.world);
         }
 
-        // Update player
         self.player.update(&mut self.world);
 
-        // Update shadow
         let player_pos = self.world.actor_pos(self.player.collider);
         self.shadow.update(player_pos);
 
-        // Check shadow collision
-        self.shadow.collides_with_player(player_pos);
+        // Check for collision with shadow - trigger game over
+        if self.shadow.collides_with_player(player_pos) {
+            self.screen = GameScreen::GameOver;
+            return;
+        }
 
-        // Update score
         self.score += get_frame_time();
+    }
+
+    fn update_paused(&mut self) {
+        if is_key_pressed(KeyCode::Escape) {
+            self.screen = GameScreen::Playing;
+        }
+    }
+
+    fn update_main_menu(&mut self) {
+        if is_key_pressed(KeyCode::Space) {
+            self.reset_game();
+            self.screen = GameScreen::Playing;
+        }
+    }
+
+    fn update_game_over(&mut self) {
+        if is_key_pressed(KeyCode::Space) {
+            self.reset_game();
+            self.screen = GameScreen::Playing;
+        } else if is_key_pressed(KeyCode::Escape) {
+            self.screen = GameScreen::MainMenu;
+        }
     }
 
     fn draw(&self) {
         clear_background(BACKGROUND_COLOR);
 
-        // Draw platforms
+        match self.screen {
+            GameScreen::Playing => self.draw_playing(),
+            GameScreen::Paused => self.draw_paused(),
+            GameScreen::MainMenu => self.draw_main_menu(),
+            GameScreen::GameOver => self.draw_game_over(),
+        }
+    }
+
+    fn draw_playing(&self) {
+        // Draw game elements
         for platform in &self.platforms {
             platform.draw(&self.world);
         }
-
-        // Draw shadow and player
         self.shadow.draw();
         self.player.draw(&self.world);
-
-        // Draw UI
         self.draw_ui();
+    }
+
+    fn draw_paused(&self) {
+        // Draw game elements in background
+        self.draw_playing();
+
+        // Draw pause overlay
+        let screen_w = screen_width();
+        let screen_h = screen_height();
+
+        // Semi-transparent overlay
+        draw_rectangle(0.0, 0.0, screen_w, screen_h, Color::new(0.0, 0.0, 0.0, 0.75));
+
+        // Pause menu text
+        let pause_text = "PAUSED";
+        let text_dims = measure_text(pause_text, None, 40, 1.0);
+        draw_text(
+            pause_text,
+            screen_w * 0.5 - text_dims.width * 0.5,
+            screen_h * 0.5,
+            40.0,
+            WHITE,
+        );
+
+        let instruction_text = "Press ESC to resume";
+        let instruction_dims = measure_text(instruction_text, None, 20, 1.0);
+        draw_text(
+            instruction_text,
+            screen_w * 0.5 - instruction_dims.width * 0.5,
+            screen_h * 0.5 + 40.0,
+            20.0,
+            WHITE,
+        );
+    }
+
+    fn draw_main_menu(&self) {
+        let screen_w = screen_width();
+        let screen_h = screen_height();
+
+        // Title
+        let title_text = "CHASEDOW";
+        let title_dims = measure_text(title_text, None, 50, 1.0);
+        draw_text(
+            title_text,
+            screen_w * 0.5 - title_dims.width * 0.5,
+            screen_h * 0.4,
+            50.0,
+            WHITE,
+        );
+
+        // High score
+        if self.high_score > 0.0 {
+            let high_score_text = format!("High Score: {:.0}", self.high_score);
+            let score_dims = measure_text(&high_score_text, None, 25, 1.0);
+            draw_text(
+                &high_score_text,
+                screen_w * 0.5 - score_dims.width * 0.5,
+                screen_h * 0.5,
+                25.0,
+                WHITE,
+            );
+        }
+
+        // Start instruction
+        let start_text = "Press SPACE to start";
+        let start_dims = measure_text(start_text, None, 25, 1.0);
+        draw_text(
+            start_text,
+            screen_w * 0.5 - start_dims.width * 0.5,
+            screen_h * 0.6,
+            25.0,
+            WHITE,
+        );
+
+        // Controls
+        let controls_text = vec![
+            "Controls:",
+            "LEFT/RIGHT - Move",
+            "SPACE - Jump",
+            "ESC - Pause",
+        ];
+
+        for (i, text) in controls_text.iter().enumerate() {
+            let dims = measure_text(text, None, 20, 1.0);
+            draw_text(
+                text,
+                screen_w * 0.5 - dims.width * 0.5,
+                screen_h * 0.7 + i as f32 * 25.0,
+                20.0,
+                WHITE,
+            );
+        }
+    }
+
+    fn draw_game_over(&self) {
+        // Draw final game state in background
+        self.draw_playing();
+
+        let screen_w = screen_width();
+        let screen_h = screen_height();
+
+        // Semi-transparent overlay
+        draw_rectangle(0.0, 0.0, screen_w, screen_h, Color::new(0.0, 0.0, 0.0, 0.75));
+
+        // Game Over text
+        let game_over_text = "GAME OVER";
+        let text_dims = measure_text(game_over_text, None, 50, 1.0);
+        draw_text(
+            game_over_text,
+            screen_w * 0.5 - text_dims.width * 0.5,
+            screen_h * 0.4,
+            50.0,
+            RED,
+        );
+
+        // Score
+        let score_text = format!("Final Score: {:.0}", self.score);
+        let score_dims = measure_text(&score_text, None, 30, 1.0);
+        draw_text(
+            &score_text,
+            screen_w * 0.5 - score_dims.width * 0.5,
+            screen_h * 0.5,
+            30.0,
+            WHITE,
+        );
+
+        // High Score
+        if self.score > self.high_score {
+            let new_high_score_text = "New High Score!";
+            let high_score_dims = measure_text(new_high_score_text, None, 25, 1.0);
+            draw_text(
+                new_high_score_text,
+                screen_w * 0.5 - high_score_dims.width * 0.5,
+                screen_h * 0.5 + 35.0,
+                25.0,
+                GOLD,
+            );
+        }
+
+        // Instructions
+        let instructions = vec![
+            "Press SPACE to play again",
+            "Press ESC for main menu",
+        ];
+
+        for (i, text) in instructions.iter().enumerate() {
+            let dims = measure_text(text, None, 20, 1.0);
+            draw_text(
+                text,
+                screen_w * 0.5 - dims.width * 0.5,
+                screen_h * 0.6 + i as f32 * 30.0,
+                20.0,
+                WHITE,
+            );
+        }
     }
 
     fn draw_ui(&self) {
         draw_text(&format!("FPS: {}", get_fps()), 10.0, 20.0, 20.0, WHITE);
         draw_text(&format!("Score: {:.0}", self.score), 10.0, 50.0, 20.0, WHITE);
+        draw_text(&format!("High Score: {:.0}", self.high_score), 10.0, 80.0, 20.0, WHITE);
     }
 }
 
