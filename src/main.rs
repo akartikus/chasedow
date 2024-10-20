@@ -21,8 +21,8 @@ const BACKGROUND_COLOR: Color = LIGHTGRAY;
 
 // Lives system
 const INITIAL_LIVES: i32 = 3;
-const INVULNERABILITY_DURATION: f32 = 2.0; // Seconds of invulnerability after getting hit
-const FLASH_FREQUENCY: f32 = 15.0; // Higher number = faster flashing
+const INVULNERABILITY_DURATION: f32 = 3.0; // Seconds of invulnerability after getting hit
+const FLASH_FREQUENCY: f32 = 10.0; // Higher number = faster flashing
 
 
 #[derive(PartialEq)]
@@ -94,7 +94,7 @@ impl GameState {
                 self.invulnerable_timer = INVULNERABILITY_DURATION;
                 // Optional: Reset player position after hit
                 let mut new_pos = self.world.actor_pos(self.player.collider);
-                new_pos.y -= 50.0; // Move player up a bit to avoid immediate re-collision
+                // new_pos.y -= 50.0; // Move player up a bit to avoid immediate re-collision
                 self.world.set_actor_position(self.player.collider, new_pos);
             }
         }
