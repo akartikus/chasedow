@@ -66,7 +66,7 @@ struct Shadow {
 impl Shadow {
     fn new(delay_frames: usize) -> Self {
         Self {
-            positions: vec![Vec2::new(50.0, 100.0); delay_frames],
+            positions: vec![vec2(50.0, 100.0); delay_frames],
             delay_frames,
         }
     }
@@ -153,7 +153,7 @@ async fn main() {
     let mut player = Player::new(&mut world);
 
     // Shadow
-    let shadow = Shadow::new(3);
+    let mut shadow = Shadow::new(25);
 
 
     // Create various platforms
@@ -166,16 +166,21 @@ async fn main() {
         Platform::new(&mut world, vec2(300.0, 150.0), vec2(200.0, 20.0), false),
 
         // Moving platform
-        Platform::new(&mut world, vec2(170.0, 250.0), vec2(200.0, 20.0), true),
+        Platform::new(&mut world, vec2(500.0, 250.0), vec2(200.0, 20.0), true),
     ];
 
+
+    let mut score = 0.;
+
     // Setup camera
-    let camera = Camera2D::from_display_rect(Rect::new(0.0, 300.0, 800.0, -300.0));
+    // fixme
+    // let camera = Camera2D::from_display_rect(Rect::new(0.0, 300.0, 800.0, -300.0));
 
     // Game loop
     loop {
         clear_background(LIGHTGRAY);
-        set_camera(&camera);
+        // fixme
+        // set_camera(&camera);
 
         // Update and draw platforms
         for platform in platforms.iter_mut() {
@@ -186,12 +191,24 @@ async fn main() {
 
         // Update and draw player
         player.update(&mut world);
-
         player.draw(&world);
-        shadow.draw(player);
+
+
+        // Update shadow with player position
+        let player_pos = world.actor_pos(player.collider);
+        shadow.update(player_pos);
+        shadow.draw();
+
+        // Check shadow collision
+        shadow.collides_with_player(player_pos);
+
+        score= score + 1. * get_frame_time();
 
         // Draw FPS counter
         draw_text(&format!("FPS: {}", get_fps()), 10.0, 20.0, 20.0, WHITE);
+
+        // Draw score
+        draw_text(&format!("Score: {:.0}", score), 10.0, 50.0, 20.0, WHITE);
 
         next_frame().await
     }
