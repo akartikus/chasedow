@@ -19,6 +19,12 @@ const STATIC_PLATFORM_COLOR: Color = GRAY;
 const SHADOW_COLOR: Color = Color::new(0.0, 0.0, 0.0, 0.8);
 const BACKGROUND_COLOR: Color = LIGHTGRAY;
 
+// Lives system
+const INITIAL_LIVES: i32 = 3;
+const INVULNERABILITY_DURATION: f32 = 2.0; // Seconds of invulnerability after getting hit
+const FLASH_FREQUENCY: f32 = 15.0; // Higher number = faster flashing
+
+
 #[derive(PartialEq)]
 enum GameScreen {
     MainMenu,
@@ -36,7 +42,9 @@ struct GameState {
     score: f32,
     screen: GameScreen,
     high_score: f32,
-
+    lives: i32,
+    invulnerable_timer: f32,
+    is_invulnerable: bool,
 }
 
 impl GameState {
@@ -54,6 +62,9 @@ impl GameState {
             score: 0.0,
             screen: GameScreen::MainMenu,
             high_score: 0.0,
+            lives: INITIAL_LIVES,
+            invulnerable_timer: 0.0,
+            is_invulnerable: false,
         }
     }
 
@@ -69,6 +80,24 @@ impl GameState {
         self.shadow = Shadow::new(25);
         self.platforms = create_platforms(&mut self.world);
         self.score = 0.0;
+        self.lives = INITIAL_LIVES;
+        self.invulnerable_timer = 0.0;
+    }
+
+    fn handle_shadow_collision(&mut self) {
+        if self.invulnerable_timer <= 0.0 {
+            self.lives -= 1;
+            if self.lives <= 0 {
+                self.screen = GameScreen::GameOver;
+            } else {
+                // Start invulnerability period
+                self.invulnerable_timer = INVULNERABILITY_DURATION;
+                // Optional: Reset player position after hit
+                let mut new_pos = self.world.actor_pos(self.player.collider);
+                new_pos.y -= 50.0; // Move player up a bit to avoid immediate re-collision
+                self.world.set_actor_position(self.player.collider, new_pos);
+            }
+        }
     }
 
     fn update(&mut self) {
@@ -81,6 +110,15 @@ impl GameState {
     }
 
     fn update_playing(&mut self) {
+        // Update invulnerability
+        if self.is_invulnerable {
+            self.invulnerable_timer -= get_frame_time();
+            if self.invulnerable_timer <= 0.0 {
+                self.is_invulnerable = false;
+                self.invulnerable_timer = 0.0;
+            }
+        }
+
         // Check for pause
         if is_key_pressed(KeyCode::Escape) {
             self.screen = GameScreen::Paused;
@@ -97,10 +135,10 @@ impl GameState {
         let player_pos = self.world.actor_pos(self.player.collider);
         self.shadow.update(player_pos);
 
-        // Check for collision with shadow - trigger game over
+        // Check for collision with shadow
         if self.shadow.collides_with_player(player_pos) {
-            self.screen = GameScreen::GameOver;
-            return;
+            self.is_invulnerable = true;
+            self.handle_shadow_collision();
         }
 
         self.score += get_frame_time();
@@ -139,13 +177,27 @@ impl GameState {
         }
     }
 
+
+    fn should_draw_player(&self) -> bool {
+        if !self.is_invulnerable {
+            return true;
+        }
+        // Create a flashing effect based on time
+        (self.invulnerable_timer * FLASH_FREQUENCY).sin() > 0.0
+    }
+
     fn draw_playing(&self) {
         // Draw game elements
         for platform in &self.platforms {
             platform.draw(&self.world);
         }
         self.shadow.draw();
-        self.player.draw(&self.world);
+
+        // Draw player with flashing effect when invulnerable
+        if self.should_draw_player() {
+            self.player.draw(&self.world);
+        }
+
         self.draw_ui();
     }
 
@@ -304,10 +356,39 @@ impl GameState {
         }
     }
 
+    fn draw_lives(&self) {
+        let heart_size = 20.0;
+        let spacing = 5.0;
+        let start_x = 10.0;
+        let start_y = 100.0;
+
+        for i in 0..INITIAL_LIVES {
+            let x = start_x + (heart_size + spacing) * i as f32;
+            let color = if i < self.lives { RED } else { GRAY };
+
+            // Draw a simple heart shape
+            draw_poly(x + heart_size/2.0, start_y + heart_size/2.0, 3, heart_size/2.0, 0.0, color);
+            draw_circle(x + heart_size/3.0, start_y + heart_size/3.0, heart_size/4.0, color);
+            draw_circle(x + 2.0*heart_size/3.0, start_y + heart_size/3.0, heart_size/4.0, color);
+        }
+    }
+
     fn draw_ui(&self) {
+        // Draw basic info
         draw_text(&format!("FPS: {}", get_fps()), 10.0, 20.0, 20.0, WHITE);
         draw_text(&format!("Score: {:.0}", self.score), 10.0, 50.0, 20.0, WHITE);
         draw_text(&format!("High Score: {:.0}", self.high_score), 10.0, 80.0, 20.0, WHITE);
+
+        // Draw lives
+        self.draw_lives();
+
+        // Draw invulnerability timer if active
+        if self.is_invulnerable {
+            draw_text(
+                &format!("Invulnerable: {:.1}s", self.invulnerable_timer),
+                10.0, 140.0, 20.0, YELLOW
+            );
+        }
     }
 }
 
