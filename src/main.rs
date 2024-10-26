@@ -52,7 +52,7 @@ impl GameState {
     async fn new() -> Self {
         let mut world = World::new();
         let player =  Player::new(&mut world).await;
-        let shadow = Shadow::new(25);
+        let shadow = Shadow::new(25).await;
         let platforms = create_platforms(&mut world);
 
         Self {
@@ -78,7 +78,7 @@ impl GameState {
         // Reset world and game elements
         self.world = World::new();
         self.player = Player::new(&mut self.world).await;
-        self.shadow = Shadow::new(25);
+        self.shadow = Shadow::new(25).await;
         self.platforms = create_platforms(&mut self.world);
         self.score = 0.0;
         self.lives = INITIAL_LIVES;
@@ -481,35 +481,72 @@ impl Player {
             DrawTextureParams {
                 dest_size: Some(vec2(self.size.x, self.size.y)),
                 source: Some(player_frame.source_rect),
+                flip_x: self.speed.x <= 0.,
                 ..Default::default()
             },
         );
-        // let pos = world.actor_pos(self.collider);
-        // draw_rectangle(pos.x, pos.y, self.size.x, self.size.y, PLAYER_COLOR);
     }
 }
 
 struct Shadow {
     positions: Vec<Vec2>,
+    last_removed_position: Vec2,
     delay_frames: usize,
+    shadow_texture: Texture2D,
+    shadow_sprite: AnimatedSprite,
 }
 
 impl Shadow {
-    fn new(delay_frames: usize) -> Self {
+    async fn new(delay_frames: usize) -> Self {
+        set_pc_assets_folder("assets");
+        let shadow_texture = load_texture("player.png").await.expect("Couldn't load player texture");
+        shadow_texture.set_filter(FilterMode::Nearest);
+        let mut shadow_sprite = AnimatedSprite::new(
+            16,
+            16,
+            &[
+                Animation {
+                    name: "walk".to_string(),
+                    row: 1,
+                    frames: 3,
+                    fps: 12,
+                },
+            ],
+            true,
+        );
+        shadow_sprite.set_animation(0);
+
         Self {
             positions: vec![vec2(50.0, 100.0); delay_frames],
+            last_removed_position: vec2(50.0, 100.0),
             delay_frames,
+            shadow_texture,
+            shadow_sprite,
         }
     }
 
     fn update(&mut self, player_pos: Vec2) {
-        self.positions.remove(0);
+        self.last_removed_position =  self.positions.remove(0);
         self.positions.push(player_pos);
     }
 
-    fn draw(&self) {
+    fn draw(&mut self) {
         if let Some(pos) = self.positions.first() {
-            draw_rectangle(pos.x, pos.y, PLAYER_SIZE.x, PLAYER_SIZE.y, SHADOW_COLOR);
+            self.shadow_sprite.update();
+            let shadow_frame = self.shadow_sprite.frame();
+
+            draw_texture_ex(
+                &self.shadow_texture,
+                pos.x ,
+                pos.y ,
+                WHITE,
+                DrawTextureParams {
+                    dest_size: Some(vec2(PLAYER_SIZE.x, PLAYER_SIZE.y)),
+                    source: Some(shadow_frame.source_rect),
+                    flip_x:  pos.x <= self.last_removed_position.x ,
+                    ..Default::default()
+                },
+            );
         }
     }
 
