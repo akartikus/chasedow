@@ -397,16 +397,16 @@ struct Player {
     collider: Actor,
     speed: Vec2,
     size: Vec2,
-    player_texture: Texture2D,
-    player_sprite: AnimatedSprite,
+    texture: Texture2D,
+    sprite: AnimatedSprite,
 }
 
 impl Player {
     async fn new(world: &mut World) -> Self {
         set_pc_assets_folder("assets");
-        let player_texture = load_texture("player.png").await.expect("Couldn't load player texture");
-        player_texture.set_filter(FilterMode::Nearest);
-        let mut player_sprite = AnimatedSprite::new(
+        let texture = load_texture("player.png").await.expect("Couldn't load player texture");
+        texture.set_filter(FilterMode::Nearest);
+        let mut sprite = AnimatedSprite::new(
             16,
             16,
             &[
@@ -425,14 +425,14 @@ impl Player {
             ],
             true,
         );
-        player_sprite.set_animation(0);
+        sprite.set_animation(0);
 
         Self {
             collider: world.add_actor(vec2(250.0, 80.0), PLAYER_SIZE.x as i32, PLAYER_SIZE.y as i32),
             speed: Vec2::ZERO,
             size: PLAYER_SIZE,
-            player_texture,
-            player_sprite,
+            texture,
+            sprite,
         }
     }
 
@@ -447,10 +447,10 @@ impl Player {
     fn handle_movement(&mut self, on_ground: bool) {
         // Apply gravity when in air
         if !on_ground {
-            self.player_sprite.set_animation(1);
+            self.sprite.set_animation(1);
             self.speed.y += GRAVITY * get_frame_time();
         } else {
-            self.player_sprite.set_animation(0);
+            self.sprite.set_animation(0);
         }
 
         // Handle horizontal movement
@@ -472,18 +472,18 @@ impl Player {
     }
 
     fn draw(&mut self, world: &World) {
-        let player_frame = self.player_sprite.frame();
+        let player_frame = self.sprite.frame();
 
         // Do not update to next frame if :
         let is_last_jump_frame = player_frame.source_rect.x == 16.*2. && player_frame.source_rect.y == 16.*2. && self.speed.y != 0.0;
 
         if !(is_last_jump_frame) {
-            self.player_sprite.update();
+            self.sprite.update();
         }
 
         let pos = world.actor_pos(self.collider);
         draw_texture_ex(
-            &self.player_texture,
+            &self.texture,
             pos.x,
             pos.y,
             WHITE,
@@ -501,58 +501,81 @@ struct Shadow {
     positions: Vec<Vec2>,
     last_removed_position: Vec2,
     delay_frames: usize,
-    shadow_texture: Texture2D,
-    shadow_sprite: AnimatedSprite,
+    texture: Texture2D,
+    sprite: AnimatedSprite,
 }
 
 impl Shadow {
     async fn new(delay_frames: usize) -> Self {
         set_pc_assets_folder("assets");
-        let shadow_texture = load_texture("player.png").await.expect("Couldn't load player texture");
-        shadow_texture.set_filter(FilterMode::Nearest);
-        let mut shadow_sprite = AnimatedSprite::new(
+        let texture = load_texture("player.png").await.expect("Couldn't load player texture");
+        texture.set_filter(FilterMode::Nearest);
+        let mut sprite = AnimatedSprite::new(
             16,
             16,
             &[
                 Animation {
                     name: "walk".to_string(),
                     row: 1,
+                    frames: 6,
+                    fps: 12,
+                },
+                Animation {
+                    name: "jump".to_string(),
+                    row: 3,
                     frames: 3,
                     fps: 12,
                 },
             ],
             true,
         );
-        shadow_sprite.set_animation(0);
+        sprite.set_animation(0);
 
         Self {
             positions: vec![vec2(50.0, 100.0); delay_frames],
             last_removed_position: vec2(50.0, 100.0),
             delay_frames,
-            shadow_texture,
-            shadow_sprite,
+            texture,
+            sprite,
         }
     }
 
     fn update(&mut self, player_pos: Vec2) {
         self.last_removed_position = self.positions.remove(0);
         self.positions.push(player_pos);
+
     }
 
     fn draw(&mut self) {
+
+        // fixme jump animation issue
         if let Some(pos) = self.positions.first() {
-            self.shadow_sprite.update();
-            let shadow_frame = self.shadow_sprite.frame();
+
+            let is_on_ground = self.last_removed_position.y == pos.y;
+            if is_on_ground {
+                self.sprite.set_animation(0);
+            }else{
+                self.sprite.set_animation(1);
+            }
+
+            let shadow_frame = self.sprite.frame();
+
+            // Do not update to next frame if :
+            let is_last_jump_frame = shadow_frame.source_rect.x == 16.*2. && shadow_frame.source_rect.y == 16.*3. && !is_on_ground;
+
+            if !(is_last_jump_frame) {
+                self.sprite.update();
+            }
 
             draw_texture_ex(
-                &self.shadow_texture,
+                &self.texture,
                 pos.x,
                 pos.y,
                 WHITE,
                 DrawTextureParams {
                     dest_size: Some(vec2(PLAYER_SIZE.x, PLAYER_SIZE.y)),
                     source: Some(shadow_frame.source_rect),
-                    flip_x: pos.x <= self.last_removed_position.x,
+                    flip_x: pos.x < self.last_removed_position.x,
                     ..Default::default()
                 },
             );
