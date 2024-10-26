@@ -1,3 +1,4 @@
+use macroquad::experimental::animation::{AnimatedSprite, Animation};
 use macroquad::prelude::*;
 use macroquad_platformer::*;
 
@@ -8,9 +9,9 @@ const JUMP_FORCE: f32 = -225.0;
 const PLATFORM_SPEED: f32 = 50.0;
 
 // Size Constants
-const PLAYER_SIZE: Vec2 = vec2(20.0, 20.0);
-const GROUND_SIZE: Vec2 = vec2(800.0, 20.0);
-const PLATFORM_SIZE: Vec2 = vec2(200.0, 20.0);
+const PLAYER_SIZE: Vec2 = vec2(16.0, 16.0);
+const GROUND_SIZE: Vec2 = vec2(800.0, 16.0);
+const PLATFORM_SIZE: Vec2 = vec2(200.0, 16.0);
 
 // Colors
 const PLAYER_COLOR: Color = BLUE;
@@ -48,9 +49,9 @@ struct GameState {
 }
 
 impl GameState {
-    fn new() -> Self {
+    async fn new() -> Self {
         let mut world = World::new();
-        let player = Player::new(&mut world);
+        let player =  Player::new(&mut world).await;
         let shadow = Shadow::new(25);
         let platforms = create_platforms(&mut world);
 
@@ -68,7 +69,7 @@ impl GameState {
         }
     }
 
-    fn reset_game(&mut self) {
+    async fn reset_game(&mut self) {
         // Update high score before resetting
         if self.score > self.high_score {
             self.high_score = self.score;
@@ -76,7 +77,7 @@ impl GameState {
 
         // Reset world and game elements
         self.world = World::new();
-        self.player = Player::new(&mut self.world);
+        self.player = Player::new(&mut self.world).await;
         self.shadow = Shadow::new(25);
         self.platforms = create_platforms(&mut self.world);
         self.score = 0.0;
@@ -100,12 +101,12 @@ impl GameState {
         }
     }
 
-    fn update(&mut self) {
+    async fn update(&mut self) {
         match self.screen {
             GameScreen::Playing => self.update_playing(),
             GameScreen::Paused => self.update_paused(),
-            GameScreen::MainMenu => self.update_main_menu(),
-            GameScreen::GameOver => self.update_game_over(),
+            GameScreen::MainMenu => self.update_main_menu().await,
+            GameScreen::GameOver => self.update_game_over().await,
         }
     }
 
@@ -150,23 +151,23 @@ impl GameState {
         }
     }
 
-    fn update_main_menu(&mut self) {
+    async fn update_main_menu(&mut self) {
         if is_key_pressed(KeyCode::Space) {
-            self.reset_game();
+            self.reset_game().await;
             self.screen = GameScreen::Playing;
         }
     }
 
-    fn update_game_over(&mut self) {
+    async fn update_game_over(&mut self) {
         if is_key_pressed(KeyCode::Space) {
-            self.reset_game();
+            self.reset_game().await;
             self.screen = GameScreen::Playing;
         } else if is_key_pressed(KeyCode::Escape) {
             self.screen = GameScreen::MainMenu;
         }
     }
 
-    fn draw(&self) {
+    fn draw(&mut self) {
         clear_background(BACKGROUND_COLOR);
 
         match self.screen {
@@ -186,7 +187,7 @@ impl GameState {
         (self.invulnerable_timer * FLASH_FREQUENCY).sin() > 0.0
     }
 
-    fn draw_playing(&self) {
+    fn draw_playing(&mut self) {
         // Draw game elements
         for platform in &self.platforms {
             platform.draw(&self.world);
@@ -201,7 +202,7 @@ impl GameState {
         self.draw_ui();
     }
 
-    fn draw_paused(&self) {
+    fn draw_paused(&mut self) {
         // Draw game elements in background
         self.draw_playing();
 
@@ -293,7 +294,7 @@ impl GameState {
         }
     }
 
-    fn draw_game_over(&self) {
+    fn draw_game_over(&mut self) {
         // Draw final game state in background
         self.draw_playing();
 
@@ -396,14 +397,42 @@ struct Player {
     collider: Actor,
     speed: Vec2,
     size: Vec2,
+    player_texture: Texture2D,
+    player_sprite: AnimatedSprite,
 }
 
 impl Player {
-    fn new(world: &mut World) -> Self {
+    async fn new(world: &mut World) -> Self {
+        set_pc_assets_folder("assets");
+        let player_texture = load_texture("player.png").await.expect("Couldn't load player texture");
+        player_texture.set_filter(FilterMode::Nearest);
+        let mut player_sprite = AnimatedSprite::new(
+            16,
+            16,
+            &[
+                Animation {
+                    name: "walk".to_string(),
+                    row: 0,
+                    frames: 6,
+                    fps: 12,
+                },
+                Animation {
+                    name: "jump".to_string(),
+                    row: 1,
+                    frames: 3,
+                    fps: 12,
+                },
+            ],
+            true,
+        );
+        player_sprite.set_animation(0);
+
         Self {
             collider: world.add_actor(vec2(250.0, 80.0), PLAYER_SIZE.x as i32, PLAYER_SIZE.y as i32),
             speed: Vec2::ZERO,
             size: PLAYER_SIZE,
+            player_texture,
+            player_sprite
         }
     }
 
@@ -439,9 +468,24 @@ impl Player {
         world.move_v(self.collider, self.speed.y * get_frame_time());
     }
 
-    fn draw(&self, world: &World) {
+    fn draw(&mut self, world: &World) {
+
+        self.player_sprite.update();
+        let player_frame = self.player_sprite.frame();
         let pos = world.actor_pos(self.collider);
-        draw_rectangle(pos.x, pos.y, self.size.x, self.size.y, PLAYER_COLOR);
+        draw_texture_ex(
+            &self.player_texture,
+            pos.x ,
+            pos.y ,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(vec2(self.size.x, self.size.y)),
+                source: Some(player_frame.source_rect),
+                ..Default::default()
+            },
+        );
+        // let pos = world.actor_pos(self.collider);
+        // draw_rectangle(pos.x, pos.y, self.size.x, self.size.y, PLAYER_COLOR);
     }
 }
 
@@ -527,10 +571,10 @@ fn create_platforms(world: &mut World) -> Vec<Platform> {
 
 #[macroquad::main("Chasedow")]
 async fn main() {
-    let mut game = GameState::new();
+    let mut game = GameState::new().await;
 
     loop {
-        game.update();
+        game.update().await;
         game.draw();
         next_frame().await
     }

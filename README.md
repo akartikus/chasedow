@@ -39,8 +39,8 @@ cargo run --release
 
 ### Controls
 - **Left/Right Arrow Keys**: Move
-- **Space**: Jump
-- **R**: Restart when game over
+- **Space**: Jump / Restart when game over
+- **Esc**: To pause the game 
 
 ## 🎯 Development Journey
 
