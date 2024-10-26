@@ -51,7 +51,7 @@ struct GameState {
 impl GameState {
     async fn new() -> Self {
         let mut world = World::new();
-        let player =  Player::new(&mut world).await;
+        let player = Player::new(&mut world).await;
         let shadow = Shadow::new(25).await;
         let platforms = create_platforms(&mut world);
 
@@ -368,9 +368,9 @@ impl GameState {
             let color = if i < self.lives { RED } else { GRAY };
 
             // Draw a simple heart shape
-            draw_poly(x + heart_size/2.0, start_y + heart_size/2.0, 3, heart_size/2.0, 0.0, color);
-            draw_circle(x + heart_size/3.0, start_y + heart_size/3.0, heart_size/4.0, color);
-            draw_circle(x + 2.0*heart_size/3.0, start_y + heart_size/3.0, heart_size/4.0, color);
+            draw_poly(x + heart_size / 2.0, start_y + heart_size / 2.0, 3, heart_size / 2.0, 0.0, color);
+            draw_circle(x + heart_size / 3.0, start_y + heart_size / 3.0, heart_size / 4.0, color);
+            draw_circle(x + 2.0 * heart_size / 3.0, start_y + heart_size / 3.0, heart_size / 4.0, color);
         }
     }
 
@@ -387,7 +387,7 @@ impl GameState {
         if self.is_invulnerable {
             draw_text(
                 &format!("Invulnerable: {:.1}s", self.invulnerable_timer),
-                10.0, 140.0, 20.0, YELLOW
+                10.0, 140.0, 20.0, YELLOW,
             );
         }
     }
@@ -418,7 +418,7 @@ impl Player {
                 },
                 Animation {
                     name: "jump".to_string(),
-                    row: 1,
+                    row: 2,
                     frames: 3,
                     fps: 12,
                 },
@@ -432,7 +432,7 @@ impl Player {
             speed: Vec2::ZERO,
             size: PLAYER_SIZE,
             player_texture,
-            player_sprite
+            player_sprite,
         }
     }
 
@@ -447,7 +447,10 @@ impl Player {
     fn handle_movement(&mut self, on_ground: bool) {
         // Apply gravity when in air
         if !on_ground {
+            self.player_sprite.set_animation(1);
             self.speed.y += GRAVITY * get_frame_time();
+        } else {
+            self.player_sprite.set_animation(0);
         }
 
         // Handle horizontal movement
@@ -469,14 +472,20 @@ impl Player {
     }
 
     fn draw(&mut self, world: &World) {
-
-        self.player_sprite.update();
         let player_frame = self.player_sprite.frame();
+
+        // Do not update to next frame if :
+        let is_last_jump_frame = player_frame.source_rect.x == 16.*2. && player_frame.source_rect.y == 16.*2. && self.speed.y != 0.0;
+
+        if !(is_last_jump_frame) {
+            self.player_sprite.update();
+        }
+
         let pos = world.actor_pos(self.collider);
         draw_texture_ex(
             &self.player_texture,
-            pos.x ,
-            pos.y ,
+            pos.x,
+            pos.y,
             WHITE,
             DrawTextureParams {
                 dest_size: Some(vec2(self.size.x, self.size.y)),
@@ -526,7 +535,7 @@ impl Shadow {
     }
 
     fn update(&mut self, player_pos: Vec2) {
-        self.last_removed_position =  self.positions.remove(0);
+        self.last_removed_position = self.positions.remove(0);
         self.positions.push(player_pos);
     }
 
@@ -537,13 +546,13 @@ impl Shadow {
 
             draw_texture_ex(
                 &self.shadow_texture,
-                pos.x ,
-                pos.y ,
+                pos.x,
+                pos.y,
                 WHITE,
                 DrawTextureParams {
                     dest_size: Some(vec2(PLAYER_SIZE.x, PLAYER_SIZE.y)),
                     source: Some(shadow_frame.source_rect),
-                    flip_x:  pos.x <= self.last_removed_position.x ,
+                    flip_x: pos.x <= self.last_removed_position.x,
                     ..Default::default()
                 },
             );
