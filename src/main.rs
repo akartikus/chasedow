@@ -4,21 +4,29 @@ use macroquad_platformer::*;
 
 // Game Constants
 const GRAVITY: f32 = 500.0;
-const PLAYER_SPEED: f32 = 100.0;
-const JUMP_FORCE: f32 = -225.0;
+const PLAYER_SPEED: f32 = 150.0;
+const JUMP_FORCE: f32 = -350.0;
 const PLATFORM_SPEED: f32 = 50.0;
+const SHADOW_FRAMES_DELAY: usize = 75;
 
 // Size Constants
-const PLAYER_SIZE: Vec2 = vec2(16.0, 16.0);
+const PLAYER_SIZE: Vec2 = vec2(64.0, 64.0);
 const GROUND_SIZE: Vec2 = vec2(800.0, 16.0);
 const PLATFORM_SIZE: Vec2 = vec2(200.0, 16.0);
 
 // Colors
-const PLAYER_COLOR: Color = BLUE;
-const PLATFORM_COLOR: Color = GREEN;
-const STATIC_PLATFORM_COLOR: Color = GRAY;
-const SHADOW_COLOR: Color = Color::new(0.0, 0.0, 0.0, 0.8);
-const BACKGROUND_COLOR: Color = LIGHTGRAY;
+const PLAYER_COLOR: Color = Color::new(0.45, 0.26, 0.20, 1.0);  // Rustic brown for player
+const PLATFORM_COLOR: Color = Color::new(0.76, 0.60, 0.42, 1.0);  // Sandy beige for moving platforms
+const STATIC_PLATFORM_COLOR: Color = Color::new(0.87, 0.68, 0.45, 1.0);  // Light sand for static platforms
+const SHADOW_COLOR: Color = Color::new(0.2, 0.1, 0.05, 0.6);  // Dark sepia shadow
+const BACKGROUND_COLOR: Color = Color::new(0.98, 0.90, 0.75, 1.0);  // Bright, warm sunshine yellow
+
+// Text colors for different purposes
+const TEXT_PRIMARY: Color = Color::new(0.45, 0.26, 0.20, 1.0);    // Deep brown - for main text
+const TEXT_SECONDARY: Color = Color::new(0.65, 0.35, 0.25, 1.0);  // Lighter brown - for less important info
+const TEXT_ACCENT: Color = Color::new(0.8, 0.4, 0.2, 1.0);        // Terracotta - for highlights/scores
+const TEXT_WARNING: Color = Color::new(0.7, 0.3, 0.2, 1.0);       // Reddish brown - for warnings/game over
+const TEXT_GOLD: Color = Color::new(0.85, 0.6, 0.2, 1.0);         // Desert gold - for high scores
 
 // Lives system
 const INITIAL_LIVES: i32 = 3;
@@ -52,7 +60,7 @@ impl GameState {
     async fn new() -> Self {
         let mut world = World::new();
         let player = Player::new(&mut world).await;
-        let shadow = Shadow::new(25).await;
+        let shadow = Shadow::new(SHADOW_FRAMES_DELAY).await;
         let platforms = create_platforms(&mut world);
 
         Self {
@@ -211,11 +219,11 @@ impl GameState {
         let screen_h = screen_height();
 
         // Semi-transparent overlay
-        draw_rectangle(0.0, 0.0, screen_w, screen_h, Color::new(0.0, 0.0, 0.0, 0.75));
+        draw_rectangle(0.0, 0.0, screen_w, screen_h, Color::new(0.0, 0.0, 0.0, 0.9));
 
         // Pause menu text
         let pause_text = "PAUSED";
-        let text_dims = measure_text(pause_text, None, 40, 1.0);
+        let text_dims = measure_text(pause_text, None, 50, 1.0);
         draw_text(
             pause_text,
             screen_w * 0.5 - text_dims.width * 0.5,
@@ -240,14 +248,14 @@ impl GameState {
         let screen_h = screen_height();
 
         // Title
-        let title_text = "CHASEDOW";
+        let title_text = "CHA(SE)DOW";
         let title_dims = measure_text(title_text, None, 50, 1.0);
         draw_text(
             title_text,
             screen_w * 0.5 - title_dims.width * 0.5,
             screen_h * 0.4,
             50.0,
-            WHITE,
+            TEXT_ACCENT,
         );
 
         // High score
@@ -259,7 +267,7 @@ impl GameState {
                 screen_w * 0.5 - score_dims.width * 0.5,
                 screen_h * 0.5,
                 25.0,
-                WHITE,
+                TEXT_PRIMARY,
             );
         }
 
@@ -271,7 +279,7 @@ impl GameState {
             screen_w * 0.5 - start_dims.width * 0.5,
             screen_h * 0.6,
             25.0,
-            WHITE,
+            TEXT_PRIMARY,
         );
 
         // Controls
@@ -289,22 +297,20 @@ impl GameState {
                 screen_w * 0.5 - dims.width * 0.5,
                 screen_h * 0.7 + i as f32 * 25.0,
                 20.0,
-                WHITE,
+                TEXT_SECONDARY,
             );
         }
     }
 
     fn draw_game_over(&mut self) {
-        // Draw final game state in background
         self.draw_playing();
 
         let screen_w = screen_width();
         let screen_h = screen_height();
 
-        // Semi-transparent overlay
-        draw_rectangle(0.0, 0.0, screen_w, screen_h, Color::new(0.0, 0.0, 0.0, 0.75));
+        draw_rectangle(0.0, 0.0, screen_w, screen_h, Color::new(0.0, 0.0, 0.0, 0.9));
 
-        // Game Over text
+        // Game Over text in warning color
         let game_over_text = "GAME OVER";
         let text_dims = measure_text(game_over_text, None, 50, 1.0);
         draw_text(
@@ -312,10 +318,10 @@ impl GameState {
             screen_w * 0.5 - text_dims.width * 0.5,
             screen_h * 0.4,
             50.0,
-            RED,
+            TEXT_WARNING,
         );
 
-        // Score
+        // Score in accent color
         let score_text = format!("Final Score: {:.0}", self.score);
         let score_dims = measure_text(&score_text, None, 30, 1.0);
         draw_text(
@@ -323,10 +329,10 @@ impl GameState {
             screen_w * 0.5 - score_dims.width * 0.5,
             screen_h * 0.5,
             30.0,
-            WHITE,
+            TEXT_ACCENT,
         );
 
-        // High Score
+        // High Score in gold
         if self.score > self.high_score {
             let new_high_score_text = "New High Score!";
             let high_score_dims = measure_text(new_high_score_text, None, 25, 1.0);
@@ -335,11 +341,11 @@ impl GameState {
                 screen_w * 0.5 - high_score_dims.width * 0.5,
                 screen_h * 0.5 + 35.0,
                 25.0,
-                GOLD,
+                TEXT_GOLD,
             );
         }
 
-        // Instructions
+        // Instructions in secondary color
         let instructions = vec![
             "Press SPACE to play again",
             "Press ESC for main menu",
@@ -352,7 +358,7 @@ impl GameState {
                 screen_w * 0.5 - dims.width * 0.5,
                 screen_h * 0.6 + i as f32 * 30.0,
                 20.0,
-                WHITE,
+                TEXT_SECONDARY,
             );
         }
     }
@@ -360,8 +366,8 @@ impl GameState {
     fn draw_lives(&self) {
         let heart_size = 20.0;
         let spacing = 5.0;
-        let start_x = 10.0;
-        let start_y = 100.0;
+        let start_x = 725.0;
+        let start_y = 10.0;
 
         for i in 0..INITIAL_LIVES {
             let x = start_x + (heart_size + spacing) * i as f32;
@@ -376,9 +382,8 @@ impl GameState {
 
     fn draw_ui(&self) {
         // Draw basic info
-        draw_text(&format!("FPS: {}", get_fps()), 10.0, 20.0, 20.0, WHITE);
-        draw_text(&format!("Score: {:.0}", self.score), 10.0, 50.0, 20.0, WHITE);
-        draw_text(&format!("High Score: {:.0}", self.high_score), 10.0, 80.0, 20.0, WHITE);
+        draw_text("Cha(se)down", 10.0, 30.0, 50.0, TEXT_ACCENT);
+        draw_text(&format!("Score: {:.0} / High Score: {:.0} ", self.score, self.high_score), 10.0, 60.0, 20.0, TEXT_ACCENT);
 
         // Draw lives
         self.draw_lives();
@@ -386,8 +391,8 @@ impl GameState {
         // Draw invulnerability timer if active
         if self.is_invulnerable {
             draw_text(
-                &format!("Invulnerable: {:.1}s", self.invulnerable_timer),
-                10.0, 140.0, 20.0, YELLOW,
+                &format!("(invulnerability: {:.0}s)", self.invulnerable_timer),
+                610.0, 45.0, 20.0, TEXT_SECONDARY,
             );
         }
     }
@@ -494,6 +499,9 @@ impl Player {
                 ..Default::default()
             },
         );
+
+        //fixme just for debug
+        draw_rectangle_lines(pos.x, pos.y, self.size.x, self.size.y, 2., PLAYER_COLOR);
     }
 }
 
@@ -579,13 +587,19 @@ impl Shadow {
                     ..Default::default()
                 },
             );
+
+            //fixme just for debug
+            draw_rectangle_lines(pos.x, pos.y, PLAYER_SIZE.x, PLAYER_SIZE.y, 3., PLAYER_COLOR);
         }
     }
 
     fn collides_with_player(&self, player_pos: Vec2) -> bool {
         if let Some(shadow_pos) = self.positions.first() {
-            let shadow_rect = Rect::new(shadow_pos.x, shadow_pos.y, PLAYER_SIZE.x, PLAYER_SIZE.y);
-            let player_rect = Rect::new(player_pos.x, player_pos.y, PLAYER_SIZE.x, PLAYER_SIZE.y);
+            //fixme fix sprite sheet file, remove margin
+            let no_margin_x = PLAYER_SIZE.x - 4. * 4.;
+            let no_margin_y = PLAYER_SIZE.y - 4. * 4.;
+            let shadow_rect = Rect::new(shadow_pos.x, shadow_pos.y, no_margin_x, no_margin_y);
+            let player_rect = Rect::new(player_pos.x, player_pos.y, no_margin_x, no_margin_y);
             shadow_rect.overlaps(&player_rect)
         } else {
             false
@@ -613,7 +627,7 @@ impl Platform {
             world.solid_move(self.collider, self.speed * get_frame_time(), 0.0);
             let pos = world.solid_pos(self.collider);
 
-            if (self.speed > 1.0 && pos.x >= 220.0) || (self.speed < -1.0 && pos.x <= 150.0) {
+            if (self.speed > 1.0 && pos.x >= 500.0) || (self.speed < -1.0 && pos.x <= 150.0) {
                 self.speed *= -1.0;
             }
         }
@@ -629,12 +643,12 @@ impl Platform {
 fn create_platforms(world: &mut World) -> Vec<Platform> {
     vec![
         // Ground platform
-        Platform::new(world, vec2(0.0, 300.0), GROUND_SIZE, false),
+        Platform::new(world, vec2(0.0, 585.0), GROUND_SIZE, false),
         // Static platforms
-        Platform::new(world, vec2(50.0, 200.0), PLATFORM_SIZE, false),
-        Platform::new(world, vec2(300.0, 150.0), PLATFORM_SIZE, false),
+        Platform::new(world, vec2(50.0, 400.0), PLATFORM_SIZE, false),
+        Platform::new(world, vec2(300.0, 300.0), PLATFORM_SIZE, false),
         // Moving platform
-        Platform::new(world, vec2(500.0, 250.0), PLATFORM_SIZE, true),
+        Platform::new(world, vec2(500.0, 500.0), PLATFORM_SIZE, true),
     ]
 }
 
