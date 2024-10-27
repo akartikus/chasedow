@@ -506,7 +506,7 @@ impl GameState {
 
     fn draw_ui(&self) {
         // Draw basic info
-        draw_text("Cha(se)down", 10.0, 30.0, 50.0, TEXT_ACCENT);
+        draw_text("Cha(se)dow", 10.0, 30.0, 50.0, TEXT_ACCENT);
         draw_text(&format!("Score: {:.0} / High Score: {:.0} ", self.score, self.high_score), 10.0, 60.0, 20.0, TEXT_ACCENT);
 
         // Draw lives

@@ -1,6 +1,6 @@
 # Chasedow (Shadow Runner)
 
-![Game Screenshot](screenshots/placeholder.png)
+![Game Screenshot](assets/screen.png)
 
 A fast-paced 2D platformer created for the first annual Quads Jam 2024, themed around "shadow". In this game, you're constantly being chased by your own shadow while navigating through challenging platforming sections. One wrong move, and your shadow catches up to you!
 
