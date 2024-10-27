@@ -2,7 +2,10 @@ use macroquad::experimental::animation::{AnimatedSprite, Animation};
 use macroquad::prelude::*;
 use macroquad_platformer::*;
 use macroquad::rand::*;
+use macroquad::audio::*;
 
+const WINDOW_WIDTH: f32 = 800.0;
+const WINDOW_HEIGHT: f32 = 600.0;
 
 // Game Constants
 const GRAVITY: f32 = 500.0;
@@ -143,7 +146,18 @@ impl GameState {
 
         self.player.update(&mut self.world);
 
-        let player_pos = self.world.actor_pos(self.player.collider);
+        // Enforce window boundaries
+        let mut player_pos = self.world.actor_pos(self.player.collider);
+        if player_pos.x < 0.0 {
+            player_pos.x = 0.0;
+            self.world.set_actor_position(self.player.collider, player_pos);
+            self.player.speed.x = 0.0;
+        } else if player_pos.x > WINDOW_WIDTH - PLAYER_SIZE.x {
+            player_pos.x = WINDOW_WIDTH - PLAYER_SIZE.x;
+            self.world.set_actor_position(self.player.collider, player_pos);
+            self.player.speed.x = 0.0;
+        }
+
         self.shadow.update(player_pos);
 
         // Check for collision with shadow
