@@ -1,6 +1,7 @@
 use macroquad::experimental::animation::{AnimatedSprite, Animation};
 use macroquad::prelude::*;
 use macroquad_platformer::*;
+use macroquad::rand::*;
 
 
 // Game Constants
@@ -613,6 +614,7 @@ struct Platform {
     speed: f32,
     size: Vec2,
     cactus_texture: Texture2D,
+    cactus_positions: Vec<f32>,
 }
 
 impl Platform {
@@ -620,11 +622,24 @@ impl Platform {
         set_pc_assets_folder("assets");
         let cactus_texture: Texture2D = load_texture("player.png").await.unwrap();
         cactus_texture.set_filter(FilterMode::Nearest);
+
+        // Randomly decide to place 1 or 2 cacti
+        let num_cacti = gen_range(1,3);
+
+        // Generate random positions along the platform
+        let mut cactus_positions = Vec::new();
+        let cactus_size = 12.0 * 4.0;
+        for _ in 0..num_cacti {
+            let x_offset = gen_range(pos.x,pos.x + size.x - cactus_size);
+            cactus_positions.push(x_offset);
+        }
+
         Self {
             collider: world.add_solid(pos, size.x as i32, size.y as i32),
             speed: if is_moving { PLATFORM_SPEED } else { 0.0 },
             size,
             cactus_texture,
+            cactus_positions,
         }
     }
 
@@ -643,28 +658,32 @@ impl Platform {
         let pos = world.solid_pos(self.collider);
         let color = if self.speed == 0.0 { STATIC_PLATFORM_COLOR } else { PLATFORM_COLOR };
 
-        // Draw cactus
-        if self.speed == 0.0 {
-            let size = vec2(12.0*4., 12.0*4.);
-            draw_texture_ex(
-                &self.cactus_texture,
-                pos.x,  // x position
-                pos.y - size.x,  // y position
-                WHITE,       // Color tint
-                DrawTextureParams {
-                    dest_size: Some(size), // Set sprite size
-                    source: Some(Rect::new(
-                        3.0 * 12.0,  // source x position in the texture
-                        2.0 * 12.0,  // source y position in the texture
-                        12.0, // width of the source rectangle
-                        12.0, // height of the source rectangle
-                    )),
-                    ..Default::default()
-                },
-            );
-        }
-
+        // Draw platform
         draw_rectangle(pos.x, pos.y, self.size.x, self.size.y, color);
+
+        // Draw cacti
+        if self.speed == 0.0 {
+            let cactus_size = vec2(12.0 * 4.0, 12.0 * 4.0);
+
+            for &x_offset in &self.cactus_positions {
+                draw_texture_ex(
+                    &self.cactus_texture,
+                    x_offset,  // x position with offset
+                    pos.y - cactus_size.x,  // y position
+                    WHITE,
+                    DrawTextureParams {
+                        dest_size: Some(cactus_size),
+                        source: Some(Rect::new(
+                            3.0 * 12.0,
+                            2.0 * 12.0,
+                            12.0,
+                            12.0,
+                        )),
+                        ..Default::default()
+                    },
+                );
+            }
+        }
     }
 }
 
