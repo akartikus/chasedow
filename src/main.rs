@@ -1,3 +1,4 @@
+use futures::executor::block_on;
 use macroquad::experimental::animation::{AnimatedSprite, Animation};
 use macroquad::prelude::*;
 use macroquad_platformer::*;
@@ -38,6 +39,12 @@ const INITIAL_LIVES: i32 = 3;
 const INVULNERABILITY_DURATION: f32 = 3.0; // Seconds of invulnerability after getting hit
 const FLASH_FREQUENCY: f32 = 10.0; // Higher number = faster flashing
 
+// Add these constants at the top
+const COIN_SIZE: Vec2 = vec2(12.0 * 3., 12.0 * 3.);  // Scale the 12x12 sprite by 3
+const COIN_SPAWN_INTERVAL: f32 = 3.0;  // Spawn a new coin every 3 seconds
+const COIN_LIFETIME: f32 = 5.0;  // Coins disappear after 5 seconds
+const COIN_POINTS: i32 = 10;     // Points earned per coin
+
 
 #[derive(PartialEq)]
 enum GameScreen {
@@ -52,7 +59,6 @@ struct GameAudio {
     // jump_sound: Sound,
     // game_over_sound: Sound,
 }
-
 
 impl GameAudio {
     async fn new() -> Self {
@@ -108,6 +114,9 @@ struct GameState {
     invulnerable_timer: f32,
     is_invulnerable: bool,
     audio: GameAudio,
+    coins: Vec<Coin>,
+    coin_spawn_timer: f32,
+    coin_points: i32,
 }
 
 impl GameState {
@@ -130,6 +139,9 @@ impl GameState {
             invulnerable_timer: 0.0,
             is_invulnerable: false,
             audio,
+            coins: Vec::new(),
+            coin_spawn_timer: 0.0,
+            coin_points: 0,
         }
     }
 
@@ -147,6 +159,10 @@ impl GameState {
         self.score = 0.0;
         self.lives = INITIAL_LIVES;
         self.invulnerable_timer = 0.0;
+
+        self.coins.clear();
+        self.coin_spawn_timer = 0.0;
+        self.coin_points = 0;
     }
 
     fn handle_shadow_collision(&mut self) {
@@ -174,9 +190,42 @@ impl GameState {
         }
     }
 
+    fn spawn_coin(&mut self) {
+        // Random position within window bounds
+        let x = gen_range(0.0, WINDOW_WIDTH - COIN_SIZE.x);
+        let y = gen_range(100.0, WINDOW_HEIGHT - COIN_SIZE.y - 50.0);  // Keep above ground level
+
+        // Spawn the coin
+        block_on(async {
+            let coin = Coin::new(vec2(x, y)).await;
+            self.coins.push(coin);
+        });
+    }
+
     fn update_playing(&mut self) {
-        // fixme https://github.com/not-fl3/macroquad/issues/440
+        // fixme https://github.com/not-fl3/macroquad/issues/440 ???
         // self.audio.play_background();
+
+        // Update coin spawn timer
+        self.coin_spawn_timer -= get_frame_time();
+        if self.coin_spawn_timer <= 0.0 {
+            self.spawn_coin();
+            self.coin_spawn_timer = COIN_SPAWN_INTERVAL;
+        }
+
+        // Update existing coins
+        let player_pos = self.world.actor_pos(self.player.collider);
+        let mut i = 0;
+        while i < self.coins.len() {
+            if !self.coins[i].update() {
+                self.coins.remove(i);
+            } else if self.coins[i].collides_with_player(player_pos, PLAYER_SIZE) {
+                self.coin_points += COIN_POINTS;
+                self.coins.remove(i);
+            } else {
+                i += 1;
+            }
+        }
 
         // Update invulnerability
         if self.is_invulnerable {
@@ -266,6 +315,11 @@ impl GameState {
     }
 
     fn draw_playing(&mut self) {
+        // Draw coins
+        for coin in &self.coins {
+            coin.draw();
+        }
+
         // Draw game elements
         for platform in &self.platforms {
             platform.draw(&self.world);
@@ -465,6 +519,13 @@ impl GameState {
                 610.0, 45.0, 20.0, TEXT_SECONDARY,
             );
         }
+
+        // Add coin points to UI
+        draw_text(
+            &format!("Coins: {}", self.coin_points),
+            10.0, 80.0, 20.0,
+            TEXT_ACCENT
+        );
     }
 }
 
@@ -779,6 +840,60 @@ async fn create_platforms(world: &mut World) -> Vec<Platform> {
         Platform::new(world, vec2(0.0, 585.0), GROUND_SIZE, false).await,
     ]
 }
+
+struct Coin {
+    position: Vec2,
+    lifetime: f32,
+    texture: Texture2D,
+}
+
+impl Coin {
+    async fn new(position: Vec2) -> Self {
+        set_pc_assets_folder("assets");
+        let texture = load_texture("player.png").await.expect("Couldn't load player texture");
+        texture.set_filter(FilterMode::Nearest);
+
+        Self {
+            position,
+            lifetime: COIN_LIFETIME,
+            texture,
+        }
+    }
+
+    fn update(&mut self) -> bool {
+        self.lifetime -= get_frame_time();
+        self.lifetime > 0.0  // Return true if coin is still alive
+    }
+
+    fn draw(&self) {
+        // Make coin flash when about to disappear
+        if self.lifetime > 1.0 || (self.lifetime * 10.0).fract() > 0.5 {
+            draw_texture_ex(
+                &self.texture,
+                self.position.x,
+                self.position.y,
+                WHITE,
+                DrawTextureParams {
+                    dest_size: Some(COIN_SIZE),
+                    source: Some(Rect::new(
+                        4.0 * 12.0,  // X position in spritesheet
+                        2.0 * 12.0,  // Y position in spritesheet
+                        12.0,        // Width of sprite
+                        12.0,        // Height of sprite
+                    )),
+                    ..Default::default()
+                },
+            );
+        }
+    }
+
+    fn collides_with_player(&self, player_pos: Vec2, player_size: Vec2) -> bool {
+        let coin_rect = Rect::new(self.position.x, self.position.y, COIN_SIZE.x, COIN_SIZE.y);
+        let player_rect = Rect::new(player_pos.x, player_pos.y, player_size.x, player_size.y);
+        coin_rect.overlaps(&player_rect)
+    }
+}
+
 
 #[macroquad::main("Chasedow")]
 async fn main() {
