@@ -632,7 +632,7 @@ impl Player {
         );
 
         //fixme just for debug
-        draw_rectangle_lines(pos.x, pos.y, self.size.x, self.size.y, 2., PLAYER_COLOR);
+        // draw_rectangle_lines(pos.x, pos.y, self.size.x, self.size.y, 2., PLAYER_COLOR);
     }
 }
 
@@ -720,7 +720,7 @@ impl Shadow {
             );
 
             //fixme just for debug
-            draw_rectangle_lines(pos.x, pos.y, PLAYER_SIZE.x, PLAYER_SIZE.y, 3., PLAYER_COLOR);
+            // draw_rectangle_lines(pos.x, pos.y, PLAYER_SIZE.x, PLAYER_SIZE.y, 3., PLAYER_COLOR);
         }
     }
 
