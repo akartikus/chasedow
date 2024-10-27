@@ -2,6 +2,7 @@ use macroquad::experimental::animation::{AnimatedSprite, Animation};
 use macroquad::prelude::*;
 use macroquad_platformer::*;
 
+
 // Game Constants
 const GRAVITY: f32 = 500.0;
 const PLAYER_SPEED: f32 = 150.0;
@@ -10,9 +11,9 @@ const PLATFORM_SPEED: f32 = 50.0;
 const SHADOW_FRAMES_DELAY: usize = 75;
 
 // Size Constants
-const PLAYER_SIZE: Vec2 = vec2(64.0, 64.0);
-const GROUND_SIZE: Vec2 = vec2(800.0, 16.0);
-const PLATFORM_SIZE: Vec2 = vec2(200.0, 16.0);
+const PLAYER_SIZE: Vec2 = vec2(12.0 *4., 12.0 *4.);
+const GROUND_SIZE: Vec2 = vec2(800.0, 12.0);
+const PLATFORM_SIZE: Vec2 = vec2(200.0, 12.0);
 
 // Colors
 const PLAYER_COLOR: Color = Color::new(0.45, 0.26, 0.20, 1.0);  // Rustic brown for player
@@ -61,7 +62,7 @@ impl GameState {
         let mut world = World::new();
         let player = Player::new(&mut world).await;
         let shadow = Shadow::new(SHADOW_FRAMES_DELAY).await;
-        let platforms = create_platforms(&mut world);
+        let platforms = create_platforms(&mut world).await;
 
         Self {
             world,
@@ -87,7 +88,7 @@ impl GameState {
         self.world = World::new();
         self.player = Player::new(&mut self.world).await;
         self.shadow = Shadow::new(25).await;
-        self.platforms = create_platforms(&mut self.world);
+        self.platforms = create_platforms(&mut self.world).await;
         self.score = 0.0;
         self.lives = INITIAL_LIVES;
         self.invulnerable_timer = 0.0;
@@ -412,8 +413,8 @@ impl Player {
         let texture = load_texture("player.png").await.expect("Couldn't load player texture");
         texture.set_filter(FilterMode::Nearest);
         let mut sprite = AnimatedSprite::new(
-            16,
-            16,
+            12,
+            12,
             &[
                 Animation {
                     name: "walk".to_string(),
@@ -519,8 +520,8 @@ impl Shadow {
         let texture = load_texture("player.png").await.expect("Couldn't load player texture");
         texture.set_filter(FilterMode::Nearest);
         let mut sprite = AnimatedSprite::new(
-            16,
-            16,
+            12,
+            12,
             &[
                 Animation {
                     name: "walk".to_string(),
@@ -611,14 +612,19 @@ struct Platform {
     collider: Solid,
     speed: f32,
     size: Vec2,
+    cactus_texture: Texture2D,
 }
 
 impl Platform {
-    fn new(world: &mut World, pos: Vec2, size: Vec2, is_moving: bool) -> Self {
+    async fn new(world: &mut World, pos: Vec2, size: Vec2, is_moving: bool) -> Self {
+        set_pc_assets_folder("assets");
+        let cactus_texture: Texture2D = load_texture("player.png").await.unwrap();
+        cactus_texture.set_filter(FilterMode::Nearest);
         Self {
             collider: world.add_solid(pos, size.x as i32, size.y as i32),
             speed: if is_moving { PLATFORM_SPEED } else { 0.0 },
             size,
+            cactus_texture,
         }
     }
 
@@ -636,19 +642,51 @@ impl Platform {
     fn draw(&self, world: &World) {
         let pos = world.solid_pos(self.collider);
         let color = if self.speed == 0.0 { STATIC_PLATFORM_COLOR } else { PLATFORM_COLOR };
+
+        // Draw cactus
+        if self.speed == 0.0 {
+            let size = vec2(12.0*4., 12.0*4.);
+            draw_texture_ex(
+                &self.cactus_texture,
+                pos.x,  // x position
+                pos.y - size.x,  // y position
+                WHITE,       // Color tint
+                DrawTextureParams {
+                    dest_size: Some(size), // Set sprite size
+                    source: Some(Rect::new(
+                        3.0 * 12.0,  // source x position in the texture
+                        2.0 * 12.0,  // source y position in the texture
+                        12.0, // width of the source rectangle
+                        12.0, // height of the source rectangle
+                    )),
+                    ..Default::default()
+                },
+            );
+        }
+
         draw_rectangle(pos.x, pos.y, self.size.x, self.size.y, color);
     }
 }
 
-fn create_platforms(world: &mut World) -> Vec<Platform> {
+async fn create_platforms(world: &mut World) -> Vec<Platform> {
     vec![
-        // Ground platform
-        Platform::new(world, vec2(0.0, 585.0), GROUND_SIZE, false),
-        // Static platforms
-        Platform::new(world, vec2(50.0, 400.0), PLATFORM_SIZE, false),
-        Platform::new(world, vec2(300.0, 300.0), PLATFORM_SIZE, false),
         // Moving platform
-        Platform::new(world, vec2(500.0, 500.0), PLATFORM_SIZE, true),
+        Platform::new(world, vec2(500.0, 100.0), PLATFORM_SIZE, true).await,
+
+        // Static platforms
+        Platform::new(world, vec2(50.0, 200.0), PLATFORM_SIZE, false).await,
+        Platform::new(world, vec2(550.0, 200.0), PLATFORM_SIZE, false).await,
+
+        Platform::new(world, vec2(300.0, 300.0), PLATFORM_SIZE, false).await,
+
+        Platform::new(world, vec2(50.0, 400.0), PLATFORM_SIZE, false).await,
+        Platform::new(world, vec2(550.0, 400.0), PLATFORM_SIZE, false).await,
+
+        // Moving platform
+        Platform::new(world, vec2(500.0, 500.0), PLATFORM_SIZE, true).await,
+
+        // Ground platform
+        Platform::new(world, vec2(0.0, 585.0), GROUND_SIZE, false).await,
     ]
 }
 
