@@ -435,7 +435,7 @@ impl Player {
         sprite.set_animation(0);
 
         Self {
-            collider: world.add_actor(vec2(250.0, 80.0), PLAYER_SIZE.x as i32, PLAYER_SIZE.y as i32),
+            collider: world.add_actor(vec2(250.0, 500.0), PLAYER_SIZE.x as i32, PLAYER_SIZE.y as i32),
             speed: Vec2::ZERO,
             size: PLAYER_SIZE,
             texture,
@@ -542,7 +542,7 @@ impl Shadow {
         sprite.set_animation(0);
 
         Self {
-            positions: vec![vec2(50.0, 100.0); delay_frames],
+            positions: vec![vec2(50.0, 500.0); delay_frames],
             last_removed_position: vec2(50.0, 100.0),
             delay_frames,
             texture,
@@ -614,7 +614,8 @@ struct Platform {
     speed: f32,
     size: Vec2,
     cactus_texture: Texture2D,
-    cactus_positions: Vec<f32>,
+    // Store both position and size for each cactus
+    cacti: Vec<(f32, f32)>, // (position, size)
 }
 
 impl Platform {
@@ -624,14 +625,17 @@ impl Platform {
         cactus_texture.set_filter(FilterMode::Nearest);
 
         // Randomly decide to place 1 or 2 cacti
-        let num_cacti = gen_range(1,3);
+        let num_cacti = gen_range(1, 3);
 
-        // Generate random positions along the platform
-        let mut cactus_positions = Vec::new();
-        let cactus_size = 12.0 * 4.0;
+        // Generate random positions and sizes along the platform
+        let mut cacti = Vec::new();
+        let min_size = 12.0 * 3.0; // Minimum size (36 pixels)
+        let max_size = 12.0 * 5.0; // Maximum size (60 pixels)
+
         for _ in 0..num_cacti {
-            let x_offset = gen_range(pos.x,pos.x + size.x - cactus_size);
-            cactus_positions.push(x_offset);
+            let cactus_size = gen_range(min_size, max_size);
+            let x_offset = gen_range(pos.x, pos.x + size.x - cactus_size);
+            cacti.push((x_offset, cactus_size));
         }
 
         Self {
@@ -639,7 +643,7 @@ impl Platform {
             speed: if is_moving { PLATFORM_SPEED } else { 0.0 },
             size,
             cactus_texture,
-            cactus_positions,
+            cacti,
         }
     }
 
@@ -663,16 +667,15 @@ impl Platform {
 
         // Draw cacti
         if self.speed == 0.0 {
-            let cactus_size = vec2(12.0 * 4.0, 12.0 * 4.0);
-
-            for &x_offset in &self.cactus_positions {
+            for &(x_offset, cactus_size) in &self.cacti {
+                let size = vec2(cactus_size, cactus_size);
                 draw_texture_ex(
                     &self.cactus_texture,
                     x_offset,  // x position with offset
-                    pos.y - cactus_size.x,  // y position
+                    pos.y - size.x,  // y position
                     WHITE,
                     DrawTextureParams {
-                        dest_size: Some(cactus_size),
+                        dest_size: Some(size),
                         source: Some(Rect::new(
                             3.0 * 12.0,
                             2.0 * 12.0,
@@ -690,7 +693,7 @@ impl Platform {
 async fn create_platforms(world: &mut World) -> Vec<Platform> {
     vec![
         // Moving platform
-        Platform::new(world, vec2(500.0, 100.0), PLATFORM_SIZE, true).await,
+        Platform::new(world, vec2(100.0, 100.0), PLATFORM_SIZE, true).await,
 
         // Static platforms
         Platform::new(world, vec2(50.0, 200.0), PLATFORM_SIZE, false).await,
