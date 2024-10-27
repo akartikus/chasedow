@@ -47,6 +47,54 @@ enum GameScreen {
     GameOver,
 }
 
+struct GameAudio {
+    background_music: Sound,
+    // jump_sound: Sound,
+    // game_over_sound: Sound,
+}
+
+
+impl GameAudio {
+    async fn new() -> Self {
+        set_pc_assets_folder("assets");
+        Self {
+            background_music: load_sound("background.ogg").await.expect("Failed to load background music"),
+            // jump_sound: load_sound("jump.ogg").await.expect("Failed to load jump sound"),
+            // game_over_sound: load_sound("game_over.ogg").await.expect("Failed to load game over sound"),
+        }
+    }
+
+    fn play_background(&self) {
+        // if !is_sound_playing(&self.background_music) {
+            play_sound(&self.background_music, PlaySoundParams {
+                looped: true,
+                volume: 0.5,
+            });
+        // }
+    }
+
+    // fn play_jump(&self) {
+    //     play_audio(&self.jump_sound, PlaySoundParams {
+    //         looped: false,
+    //         volume: 0.8,
+    //     });
+    // }
+    //
+    // fn play_game_over(&self) {
+    //     stop_audio(&self.background_music);
+    //     play_audio(&self.game_over_sound, PlaySoundParams {
+    //         looped: false,
+    //         volume: 1.0,
+    //     });
+    // }
+
+    fn stop_all(&self) {
+        stop_sound(&self.background_music);
+        // stop_audio(&self.jump_sound);
+        // stop_audio(&self.game_over_sound);
+    }
+}
+
 // Game State
 struct GameState {
     world: World,
@@ -59,6 +107,7 @@ struct GameState {
     lives: i32,
     invulnerable_timer: f32,
     is_invulnerable: bool,
+    audio: GameAudio,
 }
 
 impl GameState {
@@ -67,6 +116,7 @@ impl GameState {
         let player = Player::new(&mut world).await;
         let shadow = Shadow::new(SHADOW_FRAMES_DELAY).await;
         let platforms = create_platforms(&mut world).await;
+        let audio = GameAudio::new().await;
 
         Self {
             world,
@@ -79,6 +129,7 @@ impl GameState {
             lives: INITIAL_LIVES,
             invulnerable_timer: 0.0,
             is_invulnerable: false,
+            audio,
         }
     }
 
@@ -124,6 +175,9 @@ impl GameState {
     }
 
     fn update_playing(&mut self) {
+        // fixme https://github.com/not-fl3/macroquad/issues/440
+        // self.audio.play_background();
+
         // Update invulnerability
         if self.is_invulnerable {
             self.invulnerable_timer -= get_frame_time();
