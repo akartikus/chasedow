@@ -154,7 +154,7 @@ impl GameState {
         // Reset world and game elements
         self.world = World::new();
         self.player = Player::new(&mut self.world).await;
-        self.shadow = Shadow::new(25).await;
+        self.shadow = Shadow::new(SHADOW_FRAMES_DELAY).await;
         self.platforms = create_platforms(&mut self.world).await;
         self.score = 0.0;
         self.lives = INITIAL_LIVES;
