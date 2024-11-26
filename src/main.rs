@@ -159,6 +159,7 @@ impl GameState {
         self.score = 0.0;
         self.lives = INITIAL_LIVES;
         self.invulnerable_timer = 0.0;
+        self.is_invulnerable = false;
 
         self.coins.clear();
         self.coin_spawn_timer = 0.0;
