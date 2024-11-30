@@ -65,13 +65,13 @@ Constantes de couleur en haut du fichier (`TEXT_PRIMARY`, `TEXT_ACCENT`, `TEXT_G
 
 ## Bugs existants (à traiter en premier, petits et sûrs)
 
-### B1. L'ombre démarre trop proche après un restart
+### B1. L'ombre démarre trop proche après un restart (FAIT, 06f7d27)
 - **Cause** : `reset_game()` appelle `Shadow::new(25)` au lieu de `Shadow::new(SHADOW_FRAMES_DELAY)`.
 - **À faire** : remplacer `25` par `SHADOW_FRAMES_DELAY`. Si la tâche 2 (difficulté progressive) est faite, utiliser la valeur initiale.
 - **Attention** : c'est un changement de difficulté perceptible, le dire dans le message de commit. Le jeu devient plus facile après un restart, comme au premier lancement.
 - **Fait quand** : le délai est identique au premier lancement et après un restart.
 
-### B2. `is_invulnerable` non remis à zéro au restart
+### B2. `is_invulnerable` non remis à zéro au restart (FAIT, e00d92d)
 - **À faire** : ajouter `self.is_invulnerable = false;` dans `reset_game()`.
 - **Fait quand** : mourir pendant l'invulnérabilité puis rejouer ne fait pas clignoter le joueur.
 
