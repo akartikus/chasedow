@@ -79,7 +79,7 @@ Constantes de couleur en haut du fichier (`TEXT_PRIMARY`, `TEXT_ACCENT`, `TEXT_G
 
 ## Petits gains
 
-### 1. High score persistant
+### 1. High score persistant (FAIT)
 - **But** : conserver le meilleur score entre les sessions et le mettre à jour correctement.
 - **Contexte** : `high_score: f32` vit en mémoire, initialisé à `0.0` dans `GameState::new()`. Il est mis à jour dans `reset_game()` seulement. Il est affiché dans `draw_main_menu` (si > 0), `draw_ui` et `draw_game_over` (« New High Score! » si `score > high_score`).
 - **À faire** :

@@ -46,6 +46,31 @@ const COIN_LIFETIME: f32 = 5.0;  // Coins disappear after 5 seconds
 const COIN_POINTS: i32 = 10;     // Points earned per coin
 
 
+const HIGH_SCORE_FILE: &str = "highscore.txt";
+
+#[cfg(not(target_arch = "wasm32"))]
+fn load_high_score() -> f32 {
+    std::fs::read_to_string(HIGH_SCORE_FILE)
+        .ok()
+        .and_then(|s| s.trim().parse::<f32>().ok())
+        .unwrap_or(0.0)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn save_high_score(score: f32) {
+    // Best effort: a failed save must never crash the game
+    let _ = std::fs::write(HIGH_SCORE_FILE, score.to_string());
+}
+
+// Persistence is not available on WASM yet (see TASKS.md, task 18)
+#[cfg(target_arch = "wasm32")]
+fn load_high_score() -> f32 {
+    0.0
+}
+
+#[cfg(target_arch = "wasm32")]
+fn save_high_score(_score: f32) {}
+
 #[derive(PartialEq)]
 enum GameScreen {
     MainMenu,
@@ -110,6 +135,7 @@ struct GameState {
     score: f32,
     screen: GameScreen,
     high_score: f32,
+    new_record: bool,
     lives: i32,
     invulnerable_timer: f32,
     is_invulnerable: bool,
@@ -134,7 +160,8 @@ impl GameState {
             platforms,
             score: 0.0,
             screen: GameScreen::MainMenu,
-            high_score: 0.0,
+            high_score: load_high_score(),
+            new_record: false,
             lives: INITIAL_LIVES,
             invulnerable_timer: 0.0,
             is_invulnerable: false,
@@ -146,17 +173,13 @@ impl GameState {
     }
 
     async fn reset_game(&mut self) {
-        // Update high score before resetting
-        if self.score > self.high_score {
-            self.high_score = self.score;
-        }
-
         // Reset world and game elements
         self.world = World::new();
         self.player = Player::new(&mut self.world).await;
         self.shadow = Shadow::new(SHADOW_FRAMES_DELAY).await;
         self.platforms = create_platforms(&mut self.world).await;
         self.score = 0.0;
+        self.new_record = false;
         self.lives = INITIAL_LIVES;
         self.invulnerable_timer = 0.0;
         self.is_invulnerable = false;
@@ -170,6 +193,11 @@ impl GameState {
         if self.invulnerable_timer <= 0.0 {
             self.lives -= 1;
             if self.lives <= 0 {
+                if self.score > self.high_score {
+                    self.high_score = self.score;
+                    self.new_record = true;
+                    save_high_score(self.high_score);
+                }
                 self.screen = GameScreen::GameOver;
             } else {
                 // Start invulnerability period
@@ -458,7 +486,7 @@ impl GameState {
         );
 
         // High Score in gold
-        if self.score > self.high_score {
+        if self.new_record {
             let new_high_score_text = "New High Score!";
             let high_score_dims = measure_text(new_high_score_text, None, 25, 1.0);
             draw_text(
