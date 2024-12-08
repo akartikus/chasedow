@@ -89,7 +89,7 @@ Constantes de couleur en haut du fichier (`TEXT_PRIMARY`, `TEXT_ACCENT`, `TEXT_G
   4. WASM : `std::fs` ne marche pas. Soit ignorer le WASM dans cette tâche (`#[cfg(not(target_arch = "wasm32"))]`), soit ajouter la crate `quad-storage` plus tard (voir tâche 19).
 - **Fait quand** : tuer le jeu et le relancer affiche l'ancien record sur le menu ; un record battu puis Échap vers le menu met bien à jour « High Score ».
 
-### 2. Difficulté progressive
+### 2. Difficulté progressive (FAIT)
 - **But** : l'ombre se rapproche avec le temps.
 - **Contexte** : voir « Mécanique de l'ombre ». `positions` a une taille fixe égale à `delay_frames`. Pour réduire le délai de `n`, il faut retirer `n` éléments du début de `positions` et décrémenter `delay_frames` (sinon la taille et le délai divergent).
 - **À faire** :

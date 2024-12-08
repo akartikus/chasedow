@@ -14,6 +14,9 @@ const PLAYER_SPEED: f32 = 150.0;
 const JUMP_FORCE: f32 = -350.0;
 const PLATFORM_SPEED: f32 = 50.0;
 const SHADOW_FRAMES_DELAY: usize = 75;
+const SHADOW_DELAY_STEP: usize = 5;        // Frames removed from the shadow delay at each step
+const SHADOW_DELAY_MIN: usize = 30;        // The shadow never gets closer than this
+const SHADOW_DELAY_INTERVAL: f32 = 30.0;   // Seconds between two steps
 
 // Size Constants
 const PLAYER_SIZE: Vec2 = vec2(12.0 *4., 12.0 *4.);
@@ -136,6 +139,7 @@ struct GameState {
     screen: GameScreen,
     high_score: f32,
     new_record: bool,
+    difficulty_timer: f32,
     lives: i32,
     invulnerable_timer: f32,
     is_invulnerable: bool,
@@ -162,6 +166,7 @@ impl GameState {
             screen: GameScreen::MainMenu,
             high_score: load_high_score(),
             new_record: false,
+            difficulty_timer: SHADOW_DELAY_INTERVAL,
             lives: INITIAL_LIVES,
             invulnerable_timer: 0.0,
             is_invulnerable: false,
@@ -180,6 +185,7 @@ impl GameState {
         self.platforms = create_platforms(&mut self.world).await;
         self.score = 0.0;
         self.new_record = false;
+        self.difficulty_timer = SHADOW_DELAY_INTERVAL;
         self.lives = INITIAL_LIVES;
         self.invulnerable_timer = 0.0;
         self.is_invulnerable = false;
@@ -288,6 +294,13 @@ impl GameState {
             player_pos.x = WINDOW_WIDTH - PLAYER_SIZE.x;
             self.world.set_actor_position(self.player.collider, player_pos);
             self.player.speed.x = 0.0;
+        }
+
+        // The shadow gets closer as time goes by
+        self.difficulty_timer -= get_frame_time();
+        if self.difficulty_timer <= 0.0 {
+            self.shadow.reduce_delay(SHADOW_DELAY_STEP, SHADOW_DELAY_MIN);
+            self.difficulty_timer = SHADOW_DELAY_INTERVAL;
         }
 
         self.shadow.update(player_pos);
@@ -705,6 +718,14 @@ impl Shadow {
             delay_frames,
             texture,
             sprite,
+        }
+    }
+
+    /// Shortens the delay by `n` frames, never going below `min`.
+    fn reduce_delay(&mut self, n: usize, min: usize) {
+        if self.delay_frames >= min + n {
+            self.positions.drain(0..n);
+            self.delay_frames -= n;
         }
     }
 
