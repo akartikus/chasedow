@@ -100,7 +100,7 @@ Constantes de couleur en haut du fichier (`TEXT_PRIMARY`, `TEXT_ACCENT`, `TEXT_G
 - **Dépend de** : B1 (la valeur de départ du délai).
 - **Fait quand** : à 30 s, 60 s, etc., l'ombre est visiblement plus proche ; elle plafonne ; un restart repart à 75.
 
-### 3. Feedback à la prise d'une pièce
+### 3. Feedback à la prise d'une pièce (FAIT, sans le son)
 - **But** : petit texte « +10 » qui monte et s'efface, et un son si possible.
 - **Contexte** : le ramassage est dans la boucle `while i < self.coins.len()` de `update_playing` (`coin_points += COIN_POINTS`). Il n'y a pas de son de pièce (voir « Audio »).
 - **À faire** :

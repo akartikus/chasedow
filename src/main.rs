@@ -47,6 +47,8 @@ const COIN_SIZE: Vec2 = vec2(12.0 * 3., 12.0 * 3.);  // Scale the 12x12 sprite b
 const COIN_SPAWN_INTERVAL: f32 = 3.0;  // Spawn a new coin every 3 seconds
 const COIN_LIFETIME: f32 = 5.0;  // Coins disappear after 5 seconds
 const COIN_POINTS: i32 = 10;     // Points earned per coin
+const FLOATING_TEXT_LIFETIME: f32 = 0.7;  // Seconds a floating text stays visible
+const FLOATING_TEXT_SPEED: f32 = 30.0;    // Pixels per second, upwards
 
 
 const HIGH_SCORE_FILE: &str = "highscore.txt";
@@ -80,6 +82,13 @@ enum GameScreen {
     Playing,
     Paused,
     GameOver,
+}
+
+// Short-lived text that floats up and fades out (e.g. "+10")
+struct FloatingText {
+    pos: Vec2,
+    life: f32,
+    text: String,
 }
 
 struct GameAudio {
@@ -147,6 +156,7 @@ struct GameState {
     coins: Vec<Coin>,
     coin_spawn_timer: f32,
     coin_points: i32,
+    floating_texts: Vec<FloatingText>,
 }
 
 impl GameState {
@@ -174,6 +184,7 @@ impl GameState {
             coins: Vec::new(),
             coin_spawn_timer: 0.0,
             coin_points: 0,
+            floating_texts: Vec::new(),
         }
     }
 
@@ -193,6 +204,7 @@ impl GameState {
         self.coins.clear();
         self.coin_spawn_timer = 0.0;
         self.coin_points = 0;
+        self.floating_texts.clear();
     }
 
     fn handle_shadow_collision(&mut self) {
@@ -256,11 +268,23 @@ impl GameState {
                 self.coins.remove(i);
             } else if self.coins[i].collides_with_player(player_pos, PLAYER_SIZE) {
                 self.coin_points += COIN_POINTS;
+                self.floating_texts.push(FloatingText {
+                    pos: self.coins[i].position,
+                    life: FLOATING_TEXT_LIFETIME,
+                    text: format!("+{}", COIN_POINTS),
+                });
                 self.coins.remove(i);
             } else {
                 i += 1;
             }
         }
+
+        // Update floating texts
+        for t in self.floating_texts.iter_mut() {
+            t.pos.y -= FLOATING_TEXT_SPEED * get_frame_time();
+            t.life -= get_frame_time();
+        }
+        self.floating_texts.retain(|t| t.life > 0.0);
 
         // Update invulnerability
         if self.is_invulnerable {
@@ -371,6 +395,13 @@ impl GameState {
         // Draw player with flashing effect when invulnerable
         if self.should_draw_player() {
             self.player.draw(&self.world);
+        }
+
+        // Draw floating texts (fading out)
+        for t in &self.floating_texts {
+            let mut color = TEXT_GOLD;
+            color.a = (t.life / FLOATING_TEXT_LIFETIME).clamp(0.0, 1.0);
+            draw_text(&t.text, t.pos.x, t.pos.y, 24.0, color);
         }
 
         self.draw_ui();
