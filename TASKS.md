@@ -194,7 +194,7 @@ Constantes de couleur en haut du fichier (`TEXT_PRIMARY`, `TEXT_ACCENT`, `TEXT_G
 - **À faire** : champ `muted: bool` dans `GameAudio`, touche `KeyCode::M` testée dans `GameState::update` (quel que soit l'écran). Basculer avec `set_sound_volume(&sound, 0.0 / 0.5)`. Afficher « M: sound on/off » dans le menu.
 - **Fait quand** : M coupe et rétablit la musique, y compris en pause et au menu.
 
-### 15. Saut plus agréable (coyote time et saut tampon)
+### 15. Saut plus agréable (coyote time et saut tampon) (FAIT)
 - **But** : meilleur ressenti, sans changer la physique.
 - **Contexte** : `Player::handle_movement(on_ground)` accepte le saut seulement si `is_key_pressed(Space) && on_ground`. `Player` a `speed`, `size`, `texture`, `sprite`. `get_frame_time()` donne le dt.
 - **À faire** :

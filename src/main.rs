@@ -12,6 +12,8 @@ const WINDOW_HEIGHT: f32 = 600.0;
 const GRAVITY: f32 = 500.0;
 const PLAYER_SPEED: f32 = 150.0;
 const JUMP_FORCE: f32 = -350.0;
+const COYOTE_TIME: f32 = 0.1;       // Seconds during which a jump is still allowed after leaving a platform
+const JUMP_BUFFER_TIME: f32 = 0.1;  // Seconds during which an early jump press is remembered
 const PLATFORM_SPEED: f32 = 50.0;
 const SHADOW_FRAMES_DELAY: usize = 75;
 const SHADOW_DELAY_STEP: usize = 5;        // Frames removed from the shadow delay at each step
@@ -608,6 +610,8 @@ struct Player {
     size: Vec2,
     texture: Texture2D,
     sprite: AnimatedSprite,
+    coyote_timer: f32,
+    jump_buffer: f32,
 }
 
 impl Player {
@@ -642,6 +646,8 @@ impl Player {
             size: PLAYER_SIZE,
             texture,
             sprite,
+            coyote_timer: 0.0,
+            jump_buffer: 0.0,
         }
     }
 
@@ -669,9 +675,23 @@ impl Player {
             _ => 0.0,
         };
 
-        // Handle jumping
-        if is_key_pressed(KeyCode::Space) && on_ground {
+        // Handle jumping (with coyote time and jump buffering)
+        let dt = get_frame_time();
+        if on_ground {
+            self.coyote_timer = COYOTE_TIME;
+        } else {
+            self.coyote_timer -= dt;
+        }
+        if is_key_pressed(KeyCode::Space) {
+            self.jump_buffer = JUMP_BUFFER_TIME;
+        } else {
+            self.jump_buffer -= dt;
+        }
+        if self.jump_buffer > 0.0 && self.coyote_timer > 0.0 {
             self.speed.y = JUMP_FORCE;
+            // Consume both timers so we can't jump twice in a row
+            self.jump_buffer = 0.0;
+            self.coyote_timer = 0.0;
         }
     }
 
