@@ -122,7 +122,7 @@ Constantes de couleur en haut du fichier (`TEXT_PRIMARY`, `TEXT_ACCENT`, `TEXT_G
 
 ## Effets sur l'ombre
 
-### 5. Traînée de l'ombre
+### 5. Traînée de l'ombre (FAIT)
 - **But** : donner de la substance à l'ombre (roadmap du README).
 - **Contexte** : `Shadow::draw` dessine un seul sprite à `positions.first()`. Le vecteur `positions` contient tout l'historique entre l'ombre et le joueur, donc les frames « entre » sont déjà là.
 - **À faire** : avant le sprite principal, dessiner 2 ou 3 copies plus transparentes aux indices `positions[k * 4]` (k = 1..3), avec `Color::new(1.0, 1.0, 1.0, 0.25 / k as f32)` et la même `source` / `flip_x`. Garder `dest_size` à `PLAYER_SIZE`. Ne pas toucher à `collides_with_player` (la hitbox reste à `first()`).

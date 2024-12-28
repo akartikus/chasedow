@@ -16,6 +16,8 @@ const COYOTE_TIME: f32 = 0.1;       // Seconds during which a jump is still allo
 const JUMP_BUFFER_TIME: f32 = 0.1;  // Seconds during which an early jump press is remembered
 const PLATFORM_SPEED: f32 = 50.0;
 const SHADOW_FRAMES_DELAY: usize = 75;
+const SHADOW_TRAIL_LEN: usize = 12;       // Past shadow positions kept for the trail
+const SHADOW_TRAIL_SPACING: usize = 4;    // Frames between two ghost copies
 const SHADOW_DELAY_STEP: usize = 5;        // Frames removed from the shadow delay at each step
 const SHADOW_DELAY_MIN: usize = 30;        // The shadow never gets closer than this
 const SHADOW_DELAY_INTERVAL: f32 = 30.0;   // Seconds between two steps
@@ -732,6 +734,7 @@ impl Player {
 struct Shadow {
     positions: Vec<Vec2>,
     last_removed_position: Vec2,
+    trail: Vec<Vec2>, // Latest positions the shadow went through (oldest first)
     delay_frames: usize,
     texture: Texture2D,
     sprite: AnimatedSprite,
@@ -766,6 +769,7 @@ impl Shadow {
         Self {
             positions: vec![vec2(50.0, 500.0); delay_frames],
             last_removed_position: vec2(50.0, 100.0),
+            trail: Vec::new(),
             delay_frames,
             texture,
             sprite,
@@ -782,6 +786,10 @@ impl Shadow {
 
     fn update(&mut self, player_pos: Vec2) {
         self.last_removed_position = self.positions.remove(0);
+        self.trail.push(self.last_removed_position);
+        if self.trail.len() > SHADOW_TRAIL_LEN {
+            self.trail.remove(0);
+        }
         self.positions.push(player_pos);
 
     }
@@ -807,6 +815,29 @@ impl Shadow {
                 self.sprite.update();
             }
 
+            let flip_x = pos.x < self.last_removed_position.x;
+
+            // Ghost copies behind the shadow, more and more transparent
+            for k in 1..=3usize {
+                let offset = k * SHADOW_TRAIL_SPACING;
+                if self.trail.len() < offset {
+                    break;
+                }
+                let ghost_pos = self.trail[self.trail.len() - offset];
+                draw_texture_ex(
+                    &self.texture,
+                    ghost_pos.x,
+                    ghost_pos.y,
+                    Color::new(1.0, 1.0, 1.0, 0.25 / k as f32),
+                    DrawTextureParams {
+                        dest_size: Some(vec2(PLAYER_SIZE.x, PLAYER_SIZE.y)),
+                        source: Some(shadow_frame.source_rect),
+                        flip_x,
+                        ..Default::default()
+                    },
+                );
+            }
+
             draw_texture_ex(
                 &self.texture,
                 pos.x,
@@ -815,7 +846,7 @@ impl Shadow {
                 DrawTextureParams {
                     dest_size: Some(vec2(PLAYER_SIZE.x, PLAYER_SIZE.y)),
                     source: Some(shadow_frame.source_rect),
-                    flip_x: pos.x < self.last_removed_position.x,
+                    flip_x,
                     ..Default::default()
                 },
             );
