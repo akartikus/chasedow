@@ -152,7 +152,7 @@ Constantes de couleur en haut du fichier (`TEXT_PRIMARY`, `TEXT_ACCENT`, `TEXT_G
 - **À faire** : ajouter `value: i32` à `Coin` (pour `COIN_POINTS` ou 50) et une durée de vie plus courte pour la spéciale (2,5 s). Dans `spawn_coin`, tirer la spéciale avec une probabilité de 10 % (`gen_range(0, 10) == 0`). Si on n'a pas de sprite dédié, teinter avec `TEXT_GOLD` plutôt que d'ajouter un asset. Dans la boucle de ramassage, utiliser `coins[i].value`.
 - **Fait quand** : on voit parfois une pièce dorée qui disparaît vite et vaut plus.
 
-### 9. Power-up : ombre ralentie
+### 9. Power-up : ombre ralentie (FAIT, version gel)
 - **But** : premier power-up, dans le thème de l'ombre.
 - **Contexte** : à voir avec la tâche 2 (`delay_frames`). Il n'y a pas de système de power-up : il faut un type d'objet ramassable.
 - **À faire** : réutiliser le mécanisme des `Coin` avec un champ `kind` (enum `Normal`, `Special`, `SlowShadow`). À la collecte de `SlowShadow` : allonger le délai de l'ombre de +30 frames pendant 5 s, via un `Vec<Vec2>` agrandi en dupliquant la dernière position (ou, plus simple, geler l'ombre : ne pas appeler `shadow.update` pendant 2 s). **Recommandé : le gel**, il ne touche pas à la structure de `positions`. Timer `shadow_freeze: f32` dans `GameState`, remis à 0 dans `reset_game()`.

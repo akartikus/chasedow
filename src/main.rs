@@ -51,6 +51,9 @@ const COIN_SIZE: Vec2 = vec2(12.0 * 3., 12.0 * 3.);  // Scale the 12x12 sprite b
 const COIN_SPAWN_INTERVAL: f32 = 3.0;  // Spawn a new coin every 3 seconds
 const COIN_LIFETIME: f32 = 5.0;  // Coins disappear after 5 seconds
 const COIN_POINTS: i32 = 10;     // Points earned per coin
+const FREEZE_DURATION: f32 = 2.0;        // Seconds the shadow stays frozen after a freeze pickup
+const FREEZE_SPAWN_CHANCE: i32 = 8;       // One coin out of N is a freeze pickup
+const FREEZE_COLOR: Color = Color::new(0.5, 0.75, 1.0, 1.0);  // Tint of the freeze pickup
 const FLOATING_TEXT_LIFETIME: f32 = 0.7;  // Seconds a floating text stays visible
 const FLOATING_TEXT_SPEED: f32 = 30.0;    // Pixels per second, upwards
 
@@ -161,6 +164,7 @@ struct GameState {
     coin_spawn_timer: f32,
     coin_points: i32,
     floating_texts: Vec<FloatingText>,
+    shadow_freeze: f32,
 }
 
 impl GameState {
@@ -189,6 +193,7 @@ impl GameState {
             coin_spawn_timer: 0.0,
             coin_points: 0,
             floating_texts: Vec::new(),
+            shadow_freeze: 0.0,
         }
     }
 
@@ -209,6 +214,7 @@ impl GameState {
         self.coin_spawn_timer = 0.0;
         self.coin_points = 0;
         self.floating_texts.clear();
+        self.shadow_freeze = 0.0;
     }
 
     fn handle_shadow_collision(&mut self) {
@@ -246,9 +252,16 @@ impl GameState {
         let x = gen_range(0.0, WINDOW_WIDTH - COIN_SIZE.x);
         let y = gen_range(100.0, WINDOW_HEIGHT - COIN_SIZE.y - 50.0);  // Keep above ground level
 
+        // One coin out of FREEZE_SPAWN_CHANCE freezes the shadow
+        let kind = if gen_range(0, FREEZE_SPAWN_CHANCE) == 0 {
+            CoinKind::FreezeShadow
+        } else {
+            CoinKind::Normal
+        };
+
         // Spawn the coin
         block_on(async {
-            let coin = Coin::new(vec2(x, y)).await;
+            let coin = Coin::new(vec2(x, y), kind).await;
             self.coins.push(coin);
         });
     }
@@ -271,11 +284,20 @@ impl GameState {
             if !self.coins[i].update() {
                 self.coins.remove(i);
             } else if self.coins[i].collides_with_player(player_pos, PLAYER_SIZE) {
-                self.coin_points += COIN_POINTS;
+                let text = match self.coins[i].kind {
+                    CoinKind::Normal => {
+                        self.coin_points += COIN_POINTS;
+                        format!("+{}", COIN_POINTS)
+                    }
+                    CoinKind::FreezeShadow => {
+                        self.shadow_freeze = FREEZE_DURATION;
+                        "FREEZE!".to_string()
+                    }
+                };
                 self.floating_texts.push(FloatingText {
                     pos: self.coins[i].position,
                     life: FLOATING_TEXT_LIFETIME,
-                    text: format!("+{}", COIN_POINTS),
+                    text,
                 });
                 self.coins.remove(i);
             } else {
@@ -331,10 +353,16 @@ impl GameState {
             self.difficulty_timer = SHADOW_DELAY_INTERVAL;
         }
 
-        self.shadow.update(player_pos);
+        // A frozen shadow neither moves nor hurts
+        let shadow_frozen = self.shadow_freeze > 0.0;
+        if shadow_frozen {
+            self.shadow_freeze -= get_frame_time();
+        } else {
+            self.shadow.update(player_pos);
+        }
 
         // Check for collision with shadow
-        if self.shadow.collides_with_player(player_pos) {
+        if !shadow_frozen && self.shadow.collides_with_player(player_pos) {
             self.is_invulnerable = true;
             self.handle_shadow_collision();
         }
@@ -594,6 +622,13 @@ impl GameState {
             draw_text(
                 &format!("(invulnerability: {:.0}s)", self.invulnerable_timer),
                 610.0, 45.0, 20.0, TEXT_SECONDARY,
+            );
+        }
+
+        if self.shadow_freeze > 0.0 {
+            draw_text(
+                &format!("Shadow frozen: {:.1}s", self.shadow_freeze),
+                10.0, 100.0, 20.0, TEXT_SECONDARY,
             );
         }
 
@@ -973,14 +1008,21 @@ async fn create_platforms(world: &mut World) -> Vec<Platform> {
     ]
 }
 
+#[derive(PartialEq, Clone, Copy)]
+enum CoinKind {
+    Normal,
+    FreezeShadow,
+}
+
 struct Coin {
     position: Vec2,
     lifetime: f32,
     texture: Texture2D,
+    kind: CoinKind,
 }
 
 impl Coin {
-    async fn new(position: Vec2) -> Self {
+    async fn new(position: Vec2, kind: CoinKind) -> Self {
         set_pc_assets_folder("assets");
         let texture = load_texture("player.png").await.expect("Couldn't load player texture");
         texture.set_filter(FilterMode::Nearest);
@@ -989,6 +1031,7 @@ impl Coin {
             position,
             lifetime: COIN_LIFETIME,
             texture,
+            kind,
         }
     }
 
@@ -1000,11 +1043,15 @@ impl Coin {
     fn draw(&self) {
         // Make coin flash when about to disappear
         if self.lifetime > 1.0 || (self.lifetime * 10.0).fract() > 0.5 {
+            let tint = match self.kind {
+                CoinKind::Normal => WHITE,
+                CoinKind::FreezeShadow => FREEZE_COLOR,
+            };
             draw_texture_ex(
                 &self.texture,
                 self.position.x,
                 self.position.y,
-                WHITE,
+                tint,
                 DrawTextureParams {
                     dest_size: Some(COIN_SIZE),
                     source: Some(Rect::new(
