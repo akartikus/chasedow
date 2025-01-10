@@ -111,7 +111,7 @@ Constantes de couleur en haut du fichier (`TEXT_PRIMARY`, `TEXT_ACCENT`, `TEXT_G
   5. Son : si on ajoute `assets/coin.ogg`, le charger dans `GameAudio::new()` et ajouter `play_coin()` sur le modèle de `play_background` (`looped: false`). Si on n'a pas de fichier, sauter cette partie ; ne pas inventer un asset.
 - **Fait quand** : chaque pièce ramassée fait apparaître un « +10 » qui monte et disparaît en environ 0,7 s.
 
-### 4. Corriger l'audio (musique inactive)
+### 4. Corriger l'audio (musique inactive) (FAIT, non testé à l'écoute)
 - **But** : que la musique se joue vraiment.
 - **Contexte** : l'appel `self.audio.play_background()` est commenté dans `update_playing`, avec un fixme vers l'issue macroquad 440. Appelé à chaque frame il relancerait le son en boucle, d'où la mise en commentaire. `play_background` a aussi son `is_sound_playing` commenté.
 - **À faire** : jouer la musique une seule fois, à la transition vers `Playing` (dans `update_main_menu` et `update_game_over`, après `reset_game`), et `stop_all()` au game over. Ne pas appeler dans la boucle de frame. Gérer la pause : soit laisser tourner, soit `stop_all()` puis relance (choisir le plus simple, laisser tourner).

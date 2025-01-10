@@ -226,6 +226,7 @@ impl GameState {
                     self.new_record = true;
                     save_high_score(self.high_score);
                 }
+                self.audio.stop_all();
                 self.screen = GameScreen::GameOver;
             } else {
                 // Start invulnerability period
@@ -267,8 +268,9 @@ impl GameState {
     }
 
     fn update_playing(&mut self) {
-        // fixme https://github.com/not-fl3/macroquad/issues/440 ???
-        // self.audio.play_background();
+        // Music is started once when a game begins (see update_main_menu / update_game_over):
+        // calling play_background() every frame would restart it constantly
+        // (https://github.com/not-fl3/macroquad/issues/440)
 
         // Update coin spawn timer
         self.coin_spawn_timer -= get_frame_time();
@@ -379,6 +381,7 @@ impl GameState {
     async fn update_main_menu(&mut self) {
         if is_key_pressed(KeyCode::Space) {
             self.reset_game().await;
+            self.audio.play_background();
             self.screen = GameScreen::Playing;
         }
     }
@@ -386,6 +389,7 @@ impl GameState {
     async fn update_game_over(&mut self) {
         if is_key_pressed(KeyCode::Space) {
             self.reset_game().await;
+            self.audio.play_background();
             self.screen = GameScreen::Playing;
         } else if is_key_pressed(KeyCode::Escape) {
             self.screen = GameScreen::MainMenu;
