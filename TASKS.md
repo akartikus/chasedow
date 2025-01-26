@@ -188,7 +188,7 @@ Constantes de couleur en haut du fichier (`TEXT_PRIMARY`, `TEXT_ACCENT`, `TEXT_G
 - **À faire** : `let right = is_key_down(KeyCode::Right) || is_key_down(KeyCode::D);` et `let left = ... || is_key_down(KeyCode::A) || is_key_down(KeyCode::Q);`. Sur AZERTY, la touche « Q » physique est mappée selon la disposition : tester les deux. Mettre à jour le texte des contrôles du menu et le README.
 - **Fait quand** : les flèches, A/D et Q/D déplacent le joueur ; le menu l'indique.
 
-### 14. Couper la musique (touche M)
+### 14. Couper la musique (touche M) (FAIT, non testé à l'écoute)
 - **But** : contrôle du volume minimal.
 - **Contexte** : `GameAudio` ne gère que `background_music`, avec un volume de 0,5 en dur. Dépend de la tâche 4 (la musique doit jouer pour être coupée).
 - **À faire** : champ `muted: bool` dans `GameAudio`, touche `KeyCode::M` testée dans `GameState::update` (quel que soit l'écran). Basculer avec `set_sound_volume(&sound, 0.0 / 0.5)`. Afficher « M: sound on/off » dans le menu.

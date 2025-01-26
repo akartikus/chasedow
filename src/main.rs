@@ -98,8 +98,11 @@ struct FloatingText {
     text: String,
 }
 
+const MUSIC_VOLUME: f32 = 0.5;
+
 struct GameAudio {
     background_music: Sound,
+    muted: bool,
     // jump_sound: Sound,
     // game_over_sound: Sound,
 }
@@ -109,6 +112,7 @@ impl GameAudio {
         set_pc_assets_folder("assets");
         Self {
             background_music: load_sound("background.ogg").await.expect("Failed to load background music"),
+            muted: false,
             // jump_sound: load_sound("jump.ogg").await.expect("Failed to load jump sound"),
             // game_over_sound: load_sound("game_over.ogg").await.expect("Failed to load game over sound"),
         }
@@ -118,7 +122,7 @@ impl GameAudio {
         // if !is_sound_playing(&self.background_music) {
             play_sound(&self.background_music, PlaySoundParams {
                 looped: true,
-                volume: 0.5,
+                volume: self.music_volume(),
             });
         // }
     }
@@ -137,6 +141,15 @@ impl GameAudio {
     //         volume: 1.0,
     //     });
     // }
+
+    fn music_volume(&self) -> f32 {
+        if self.muted { 0.0 } else { MUSIC_VOLUME }
+    }
+
+    fn toggle_mute(&mut self) {
+        self.muted = !self.muted;
+        set_sound_volume(&self.background_music, self.music_volume());
+    }
 
     fn stop_all(&self) {
         stop_sound(&self.background_music);
@@ -240,6 +253,11 @@ impl GameState {
     }
 
     async fn update(&mut self) {
+        // Mute toggle works on every screen
+        if is_key_pressed(KeyCode::M) {
+            self.audio.toggle_mute();
+        }
+
         match self.screen {
             GameScreen::Playing => self.update_playing(),
             GameScreen::Paused => self.update_paused(),
@@ -521,6 +539,7 @@ impl GameState {
             "LEFT/RIGHT - Move",
             "SPACE - Jump",
             "ESC - Pause",
+            "M - Sound on/off",
         ];
 
         for (i, text) in controls_text.iter().enumerate() {
