@@ -182,7 +182,7 @@ Constantes de couleur en haut du fichier (`TEXT_PRIMARY`, `TEXT_ACCENT`, `TEXT_G
 
 ## Qualité de vie
 
-### 13. Contrôles alternatifs
+### 13. Contrôles alternatifs (FAIT)
 - **But** : jouer à A/D ou Q/D en plus des flèches.
 - **Contexte** : `Player::handle_movement` lit `is_key_down(KeyCode::Right)` / `Left`, et `is_key_pressed(KeyCode::Space)` pour le saut. Le menu (`draw_main_menu`) affiche « LEFT/RIGHT - Move ».
 - **À faire** : `let right = is_key_down(KeyCode::Right) || is_key_down(KeyCode::D);` et `let left = ... || is_key_down(KeyCode::A) || is_key_down(KeyCode::Q);`. Sur AZERTY, la touche « Q » physique est mappée selon la disposition : tester les deux. Mettre à jour le texte des contrôles du menu et le README.

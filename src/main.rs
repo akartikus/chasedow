@@ -536,7 +536,7 @@ impl GameState {
         // Controls
         let controls_text = vec![
             "Controls:",
-            "LEFT/RIGHT - Move",
+            "LEFT/RIGHT, A/D or Q/D - Move",
             "SPACE - Jump",
             "ESC - Pause",
             "M - Sound on/off",
@@ -729,7 +729,10 @@ impl Player {
         }
 
         // Handle horizontal movement
-        self.speed.x = match (is_key_down(KeyCode::Right), is_key_down(KeyCode::Left)) {
+        // Arrow keys, WASD (QWERTY) and ZQSD (AZERTY) all work
+        let right = is_key_down(KeyCode::Right) || is_key_down(KeyCode::D);
+        let left = is_key_down(KeyCode::Left) || is_key_down(KeyCode::A) || is_key_down(KeyCode::Q);
+        self.speed.x = match (right, left) {
             (true, false) => PLAYER_SPEED,
             (false, true) => -PLAYER_SPEED,
             _ => 0.0,
