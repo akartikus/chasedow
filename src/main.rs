@@ -8,6 +8,8 @@ mod constants;
 use constants::*;
 mod audio;
 use audio::*;
+mod coin;
+use coin::*;
 
 const HIGH_SCORE_FILE: &str = "highscore.txt";
 
@@ -924,72 +926,6 @@ async fn create_platforms(world: &mut World) -> Vec<Platform> {
         Platform::new(world, vec2(0.0, 585.0), GROUND_SIZE, false).await,
     ]
 }
-
-#[derive(PartialEq, Clone, Copy)]
-enum CoinKind {
-    Normal,
-    FreezeShadow,
-}
-
-struct Coin {
-    position: Vec2,
-    lifetime: f32,
-    texture: Texture2D,
-    kind: CoinKind,
-}
-
-impl Coin {
-    async fn new(position: Vec2, kind: CoinKind) -> Self {
-        set_pc_assets_folder("assets");
-        let texture = load_texture("player.png").await.expect("Couldn't load player texture");
-        texture.set_filter(FilterMode::Nearest);
-
-        Self {
-            position,
-            lifetime: COIN_LIFETIME,
-            texture,
-            kind,
-        }
-    }
-
-    fn update(&mut self) -> bool {
-        self.lifetime -= get_frame_time();
-        self.lifetime > 0.0  // Return true if coin is still alive
-    }
-
-    fn draw(&self) {
-        // Make coin flash when about to disappear
-        if self.lifetime > 1.0 || (self.lifetime * 10.0).fract() > 0.5 {
-            let tint = match self.kind {
-                CoinKind::Normal => WHITE,
-                CoinKind::FreezeShadow => FREEZE_COLOR,
-            };
-            draw_texture_ex(
-                &self.texture,
-                self.position.x,
-                self.position.y,
-                tint,
-                DrawTextureParams {
-                    dest_size: Some(COIN_SIZE),
-                    source: Some(Rect::new(
-                        4.0 * 12.0,  // X position in spritesheet
-                        2.0 * 12.0,  // Y position in spritesheet
-                        12.0,        // Width of sprite
-                        12.0,        // Height of sprite
-                    )),
-                    ..Default::default()
-                },
-            );
-        }
-    }
-
-    fn collides_with_player(&self, player_pos: Vec2, player_size: Vec2) -> bool {
-        let coin_rect = Rect::new(self.position.x, self.position.y, COIN_SIZE.x, COIN_SIZE.y);
-        let player_rect = Rect::new(player_pos.x, player_pos.y, player_size.x, player_size.y);
-        coin_rect.overlaps(&player_rect)
-    }
-}
-
 
 #[macroquad::main("Chasedow")]
 async fn main() {
