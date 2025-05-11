@@ -1,6 +1,6 @@
 # Chasedow : tâches et contexte
 
-Ce document est autosuffisant : chaque tâche contient ce qu'il faut pour la coder sans relire tout le code. Numéros de ligne relatifs à `src/main.rs` au commit `77b5d84` ; ils bougent, cherche plutôt le nom de la fonction.
+Ce document est autosuffisant : chaque tâche contient ce qu'il faut pour la coder sans relire tout le code. Les numéros de ligne ont disparu avec le découpage en modules (tâche 16) : cherche le nom de la fonction ou de la struct.
 
 Principes : rester simple, ne pas casser l'existant, ne pas changer l'esprit du jeu (course sans fin contre son ombre). Un commit par tâche. Vérifier avec `cargo build` puis `cargo run --release` (le CI lance `cargo build` et `cargo test`).
 
@@ -9,7 +9,7 @@ Principes : rester simple, ne pas casser l'existant, ne pas changer l'esprit du 
 ## 0. Contexte commun (à lire une fois)
 
 ### Architecture
-Tout est dans `src/main.rs` (~906 lignes), assets dans `assets/` : `player.png` (spritesheet unique, cases de 12×12 px), `background.ogg`, `screen.png` (capture du README). Il n'y a pas d'autre son.
+Le code est découpé en modules (tâche 16) : `main.rs` (boucle), `game.rs` (`GameState`, écrans, high score, `FloatingText`), `player.rs`, `shadow.rs`, `platform.rs` (inclut `create_platforms`), `coin.rs` (`Coin`, `CoinKind`), `audio.rs` (`GameAudio`), `constants.rs` (toutes les constantes de jeu). Les champs et méthodes sont `pub` pour simplifier. Dans les tâches ci-dessous, « `GameState` » et « `update_playing` » sont dans `game.rs`. Assets dans `assets/` : `player.png` (spritesheet unique, cases de 12×12 px), `background.ogg`, `screen.png` (capture du README). Il n'y a pas d'autre son.
 
 Dépendances : `macroquad` 0.4.13, `macroquad-platformer` (physique : `World`, `Actor` pour le joueur, `Solid` pour les plateformes), `rand`, `futures`, `getrandom` (feature `js`, donc cible WASM envisagée).
 
@@ -208,7 +208,7 @@ Constantes de couleur en haut du fichier (`TEXT_PRIMARY`, `TEXT_ACCENT`, `TEXT_G
 
 ## Technique
 
-### 16. Découper `main.rs` en modules
+### 16. Découper `main.rs` en modules (FAIT)
 - **But** : lisibilité, sans changer le comportement.
 - **Contexte** : 906 lignes. Les constantes sont en tête (lignes 8 à 46). `Player`, `Shadow`, `Platform`, `Coin`, `GameAudio` sont des structs indépendantes ; seule `GameState` les orchestre.
 - **À faire** : créer `src/constants.rs`, `audio.rs`, `player.rs`, `shadow.rs`, `platform.rs`, `coin.rs`, `game.rs` (`GameState` et `GameScreen`). Ne laisser que `main()` dans `main.rs`. Marquer `pub` ce qui est utilisé entre modules ; `use crate::constants::*;` partout.
