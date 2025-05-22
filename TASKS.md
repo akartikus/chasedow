@@ -59,7 +59,7 @@ Constantes de couleur en haut du fichier (`TEXT_PRIMARY`, `TEXT_ACCENT`, `TEXT_G
 - `coin_points` est séparé de `score` : les pièces ne comptent pas dans le score affiché au game over.
 - `reset_game()` ne remet pas `is_invulnerable` à `false`.
 - `Coin::new`, `Shadow::new`, `Platform::new` rechargent chacun `player.png` (une texture par instance, et par pièce spawnée). Fonctionne, mais gaspille ; ne pas « corriger » en passant, hors périmètre.
-- Il n'existe aucun test. Le CI lance `cargo test` : il passe sans rien.
+- Les tests unitaires (5) sont dans `shadow.rs` (`ShadowHistory`, logique pure du délai de l'ombre). Le reste dépend de macroquad et n'est pas testé.
 
 ---
 
@@ -215,7 +215,7 @@ Constantes de couleur en haut du fichier (`TEXT_PRIMARY`, `TEXT_ACCENT`, `TEXT_G
 - **Règle** : un module par commit, `cargo build` entre chaque, aucun changement de logique. Faire cette tâche **avant** les gros ajouts de fonctionnalités, ou à la toute fin, mais pas au milieu (conflits).
 - **Fait quand** : le jeu se comporte à l'identique et `main.rs` fait moins de 20 lignes.
 
-### 17. Tests unitaires
+### 17. Tests unitaires (FAIT)
 - **But** : garantir la logique pure et donner un sens à `cargo test` du CI.
 - **Contexte** : la plupart du code dépend de macroquad (fenêtre, textures), donc non testable tel quel. Seule la logique de `Shadow` est pure en pratique : `Shadow::new` charge une texture et ne peut donc pas s'appeler en test.
 - **À faire** : extraire la logique de délai dans une petite fonction ou struct sans dépendance graphique (ex. `ShadowTrail { positions, delay_frames }` avec `push(pos) -> Vec2`, `reduce_delay`), puis la tester : taille constante après `push`, `reduce_delay` respecte le minimum, la valeur retournée est bien celle d'il y a `delay` frames. Ajouter aussi un test de la formule de combo (tâche 11) si elle est extraite.
