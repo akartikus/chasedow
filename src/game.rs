@@ -1,4 +1,3 @@
-use futures::executor::block_on;
 use macroquad::prelude::*;
 use macroquad::rand::*;
 use macroquad_platformer::*;
@@ -65,6 +64,7 @@ pub struct GameState {
     pub is_invulnerable: bool,
     pub audio: GameAudio,
     pub coins: Vec<Coin>,
+    pub coin_texture: Texture2D,
     pub coin_spawn_timer: f32,
     pub coin_points: i32,
     pub floating_texts: Vec<FloatingText>,
@@ -78,6 +78,8 @@ impl GameState {
         let shadow = Shadow::new(SHADOW_FRAMES_DELAY).await;
         let platforms = create_platforms(&mut world).await;
         let audio = GameAudio::new().await;
+        let coin_texture = load_texture("player.png").await.expect("Couldn't load coin texture");
+        coin_texture.set_filter(FilterMode::Nearest);
 
         Self {
             world,
@@ -94,6 +96,7 @@ impl GameState {
             is_invulnerable: false,
             audio,
             coins: Vec::new(),
+            coin_texture,
             coin_spawn_timer: 0.0,
             coin_points: 0,
             floating_texts: Vec::new(),
@@ -169,11 +172,7 @@ impl GameState {
             CoinKind::Normal
         };
 
-        // Spawn the coin
-        block_on(async {
-            let coin = Coin::new(vec2(x, y), kind).await;
-            self.coins.push(coin);
-        });
+        self.coins.push(Coin::new(vec2(x, y), kind, self.coin_texture.clone()));
     }
 
     pub fn update_playing(&mut self) {

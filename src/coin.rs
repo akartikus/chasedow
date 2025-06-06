@@ -16,11 +16,9 @@ pub struct Coin {
 }
 
 impl Coin {
-    pub async fn new(position: Vec2, kind: CoinKind) -> Self {
-        set_pc_assets_folder("assets");
-        let texture = load_texture("player.png").await.expect("Couldn't load player texture");
-        texture.set_filter(FilterMode::Nearest);
-
+    /// The texture is loaded once by the caller and shared, so creating a coin is synchronous
+    /// (blocking on an async load would freeze the game on WASM).
+    pub fn new(position: Vec2, kind: CoinKind, texture: Texture2D) -> Self {
         Self {
             position,
             lifetime: COIN_LIFETIME,
