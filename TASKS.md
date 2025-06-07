@@ -222,9 +222,9 @@ Constantes de couleur en haut du fichier (`TEXT_PRIMARY`, `TEXT_ACCENT`, `TEXT_G
 - **Dépend de** : tâche 2 pour `reduce_delay`.
 - **Fait quand** : `cargo test` exécute au moins 3 tests utiles et passe.
 
-### 18. Publication WASM (GitHub Pages)
+### 18. Publication WASM (GitHub Pages) (FAIT, affichage navigateur non confirmé)
 - **But** : jeu jouable dans le navigateur.
-- **Contexte** : `getrandom` est déjà configuré avec la feature `js`. Le CI actuel (`.github/workflows/rust.yml`) fait seulement `cargo build` et `cargo test` sur push/PR vers `master`. Les assets se chargent par `set_pc_assets_folder("assets")` : sur le web, macroquad les cherche par URL, donc `assets/` doit être servi à côté du `.wasm`.
+- **Contexte** : `getrandom` est déjà configuré avec la feature `js`. Le CI actuel (`.github/workflows/rust.yml`) fait seulement `cargo build` et `cargo test` sur push/PR vers `master`. Les assets se chargent par `set_pc_assets_folder("assets")`, qui s'applique aussi sur le web : les fichiers sont servis depuis `assets/` à côté de la page (`scripts/build-web.sh` s'en occupe).
 - **À faire** : `rustup target add wasm32-unknown-unknown`, `cargo build --release --target wasm32-unknown-unknown`, copier le `.wasm`, un `index.html` minimal (chargeur `mq_js_bundle.js` de macroquad) et `assets/` dans un dossier `dist/`, puis un second workflow qui publie `dist/` sur GitHub Pages.
 - **Pièges** : `block_on` dans `spawn_coin` (`futures::executor`) bloque le thread et peut poser problème sur WASM : à vérifier, c'est un risque réel. La sauvegarde du high score (tâche 1) ne marche pas sur WASM sans `quad-storage`. L'audio exige une interaction préalable (voir tâche 4).
 - **Fait quand** : la page publiée démarre le jeu et le joue sans erreur console.

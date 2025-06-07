@@ -1,0 +1,4 @@
+# Recent rustc versions refuse undefined symbols on wasm32-unknown-unknown by default,
+# but macroquad's JS bundle (mq_js_bundle.js) provides them at runtime.
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "link-arg=--allow-undefined"]

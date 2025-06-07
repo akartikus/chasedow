@@ -9,6 +9,7 @@ use crate::platform::*;
 use crate::player::*;
 use crate::shadow::*;
 
+#[cfg(not(target_arch = "wasm32"))]
 pub const HIGH_SCORE_FILE: &str = "highscore.txt";
 
 #[cfg(not(target_arch = "wasm32"))]

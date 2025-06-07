@@ -43,6 +43,16 @@ cargo run --release
 - **Esc**: To pause the game
 - **M**: Mute / unmute the music
 
+### Web build (WASM)
+
+```bash
+rustup target add wasm32-unknown-unknown
+./scripts/build-web.sh        # builds into dist/
+basic-http-server dist        # or any static file server, then open http://localhost:4000
+```
+
+The high score is not saved in the web version.
+
 ## 🎯 Development Journey
 
 This project represents my journey into Rust programming through game development. As my first concrete Rust project, it serves both as a learning exercise and a fun gaming experience. The Quads Jam provided the perfect opportunity to:

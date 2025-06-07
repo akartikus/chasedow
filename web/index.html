@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chasedow</title>
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+            background: #faE6C0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* The game logic assumes an 800x600 window */
+        canvas {
+            width: 800px;
+            height: 600px;
+            max-width: 100vw;
+            max-height: 100vh;
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="glcanvas" tabindex="1"></canvas>
+    <script src="mq_js_bundle.js"></script>
+    <script>load("chasedow.wasm");</script>
+</body>
+</html>
