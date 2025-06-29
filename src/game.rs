@@ -335,6 +335,21 @@ impl GameState {
         for platform in &self.platforms {
             platform.draw(&self.world);
         }
+
+        // Warning ring around the shadow when it gets close (not while it is frozen)
+        let shadow_pos = self.shadow.history.positions.first().copied();
+        if let (Some(shadow_pos), true) = (shadow_pos, self.shadow_freeze <= 0.0) {
+            let player_pos = self.world.actor_pos(self.player.collider);
+            let dist = player_pos.distance(shadow_pos);
+            if dist < SHADOW_ALERT_DISTANCE {
+                let closeness = 1.0 - dist / SHADOW_ALERT_DISTANCE;
+                let pulse = 1.0 + 0.15 * (get_time() as f32 * 12.0).sin();
+                let center = shadow_pos + PLAYER_SIZE * 0.5;
+                let mut color = TEXT_WARNING;
+                color.a = 0.2 + 0.6 * closeness;
+                draw_circle_lines(center.x, center.y, PLAYER_SIZE.x * 0.8 * pulse, 3.0, color);
+            }
+        }
         self.shadow.draw();
 
         // Draw player with flashing effect when invulnerable

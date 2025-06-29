@@ -13,6 +13,7 @@ pub const PLATFORM_SPEED: f32 = 50.0;
 pub const SHADOW_FRAMES_DELAY: usize = 75;
 pub const SHADOW_TRAIL_LEN: usize = 12;       // Past shadow positions kept for the trail
 pub const SHADOW_TRAIL_SPACING: usize = 4;    // Frames between two ghost copies
+pub const SHADOW_ALERT_DISTANCE: f32 = 150.0; // Below this distance (px) the shadow shows a warning ring
 pub const SHADOW_DELAY_STEP: usize = 5;        // Frames removed from the shadow delay at each step
 pub const SHADOW_DELAY_MIN: usize = 30;        // The shadow never gets closer than this
 pub const SHADOW_DELAY_INTERVAL: f32 = 30.0;   // Seconds between two steps

@@ -129,7 +129,7 @@ Constantes de couleur en haut du fichier (`TEXT_PRIMARY`, `TEXT_ACCENT`, `TEXT_G
 - **Piège** : vérifier `positions.len() > k * 4` pour éviter une panique si le délai est réduit (tâche 2).
 - **Fait quand** : on voit une queue fantomatique derrière l'ombre, sans changement de difficulté.
 
-### 6. Ombre qui réagit à la proximité
+### 6. Ombre qui réagit à la proximité (FAIT)
 - **But** : avertir le joueur quand l'ombre est proche.
 - **Contexte** : `shadow.positions.first()` et `player_pos` sont tous deux disponibles dans `update_playing`.
 - **À faire** : calculer `dist = player_pos.distance(shadow_pos)`. En dessous d'un seuil (≈ 150 px), dessiner un cercle d'alerte discret ou teinter l'ombre (`Color` du `draw_texture_ex` en rouge-brun). Pas de nouvelle mécanique, uniquement visuel.
