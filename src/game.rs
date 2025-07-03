@@ -70,6 +70,7 @@ pub struct GameState {
     pub coin_points: i32,
     pub floating_texts: Vec<FloatingText>,
     pub shadow_freeze: f32,
+    pub hit_flash: f32,
 }
 
 impl GameState {
@@ -102,6 +103,7 @@ impl GameState {
             coin_points: 0,
             floating_texts: Vec::new(),
             shadow_freeze: 0.0,
+            hit_flash: 0.0,
         }
     }
 
@@ -123,6 +125,7 @@ impl GameState {
         self.coin_points = 0;
         self.floating_texts.clear();
         self.shadow_freeze = 0.0;
+        self.hit_flash = 0.0;
     }
 
     pub fn handle_shadow_collision(&mut self) {
@@ -139,6 +142,7 @@ impl GameState {
             } else {
                 // Start invulnerability period
                 self.invulnerable_timer = INVULNERABILITY_DURATION;
+                self.hit_flash = HIT_FLASH_DURATION;
                 // Optional: Reset player position after hit
                 let mut new_pos = self.world.actor_pos(self.player.collider);
                 // new_pos.y -= 50.0; // Move player up a bit to avoid immediate re-collision
@@ -222,6 +226,8 @@ impl GameState {
             t.life -= get_frame_time();
         }
         self.floating_texts.retain(|t| t.life > 0.0);
+
+        self.hit_flash = (self.hit_flash - get_frame_time()).max(0.0);
 
         // Update invulnerability
         if self.is_invulnerable {
@@ -362,6 +368,12 @@ impl GameState {
             let mut color = TEXT_GOLD;
             color.a = (t.life / FLOATING_TEXT_LIFETIME).clamp(0.0, 1.0);
             draw_text(&t.text, t.pos.x, t.pos.y, 24.0, color);
+        }
+
+        // Red flash when a life was just lost
+        if self.hit_flash > 0.0 {
+            let alpha = 0.4 * self.hit_flash / HIT_FLASH_DURATION;
+            draw_rectangle(0.0, 0.0, screen_width(), screen_height(), Color::new(0.8, 0.1, 0.05, alpha));
         }
 
         self.draw_ui();
