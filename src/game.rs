@@ -173,6 +173,8 @@ impl GameState {
         // One coin out of FREEZE_SPAWN_CHANCE freezes the shadow
         let kind = if gen_range(0, FREEZE_SPAWN_CHANCE) == 0 {
             CoinKind::FreezeShadow
+        } else if gen_range(0, SPECIAL_SPAWN_CHANCE) == 0 {
+            CoinKind::Special
         } else {
             CoinKind::Normal
         };
@@ -203,6 +205,10 @@ impl GameState {
                     CoinKind::Normal => {
                         self.coin_points += COIN_POINTS;
                         format!("+{}", COIN_POINTS)
+                    }
+                    CoinKind::Special => {
+                        self.coin_points += COIN_SPECIAL_POINTS;
+                        format!("+{}", COIN_SPECIAL_POINTS)
                     }
                     CoinKind::FreezeShadow => {
                         self.shadow_freeze = FREEZE_DURATION;

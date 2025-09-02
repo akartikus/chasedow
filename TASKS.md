@@ -146,7 +146,7 @@ Constantes de couleur en haut du fichier (`TEXT_PRIMARY`, `TEXT_ACCENT`, `TEXT_G
 
 ## Gameplay simple
 
-### 8. Pièce spéciale
+### 8. Pièce spéciale (FAIT)
 - **But** : un peu de risque et de récompense.
 - **Contexte** : `Coin` n'a ni type ni valeur propre ; la valeur est la constante `COIN_POINTS`. Le sprite normal est la case (4, 2) de la spritesheet, de 12×12.
 - **À faire** : ajouter `value: i32` à `Coin` (pour `COIN_POINTS` ou 50) et une durée de vie plus courte pour la spéciale (2,5 s). Dans `spawn_coin`, tirer la spéciale avec une probabilité de 10 % (`gen_range(0, 10) == 0`). Si on n'a pas de sprite dédié, teinter avec `TEXT_GOLD` plutôt que d'ajouter un asset. Dans la boucle de ramassage, utiliser `coins[i].value`.

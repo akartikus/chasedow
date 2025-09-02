@@ -5,6 +5,7 @@ use crate::constants::*;
 #[derive(PartialEq, Clone, Copy)]
 pub enum CoinKind {
     Normal,
+    Special,
     FreezeShadow,
 }
 
@@ -21,7 +22,10 @@ impl Coin {
     pub fn new(position: Vec2, kind: CoinKind, texture: Texture2D) -> Self {
         Self {
             position,
-            lifetime: COIN_LIFETIME,
+            lifetime: match kind {
+                CoinKind::Special => COIN_SPECIAL_LIFETIME,
+                _ => COIN_LIFETIME,
+            },
             texture,
             kind,
         }
@@ -37,6 +41,7 @@ impl Coin {
         if self.lifetime > 1.0 || (self.lifetime * 10.0).fract() > 0.5 {
             let tint = match self.kind {
                 CoinKind::Normal => WHITE,
+                CoinKind::Special => SPECIAL_COIN_COLOR,
                 CoinKind::FreezeShadow => FREEZE_COLOR,
             };
             draw_texture_ex(
