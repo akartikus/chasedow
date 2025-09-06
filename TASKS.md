@@ -159,7 +159,7 @@ Constantes de couleur en haut du fichier (`TEXT_PRIMARY`, `TEXT_ACCENT`, `TEXT_G
 - **Piège** : si l'ombre est gelée, elle reste à `positions.first()`, donc elle peut toucher le joueur qui revient dessus. Pendant le gel, désactiver aussi la collision ombre/joueur, sinon c'est injuste.
 - **Fait quand** : ramasser l'objet fige l'ombre pendant la durée, avec un indicateur à l'écran.
 
-### 10. Power-up : vie bonus
+### 10. Power-up : vie bonus (FAIT)
 - **But** : rattrapage rare.
 - **Contexte** : `lives` est un `i32` avec `INITIAL_LIVES = 3` ; `draw_lives` dessine `INITIAL_LIVES` cœurs (rouges si `i < lives`, gris sinon), donc ne gère pas plus de 3.
 - **À faire** : `kind = ExtraLife`, rare (≈ 3 % des spawns). À la collecte : `self.lives = (self.lives + 1).min(INITIAL_LIVES)`. Ne pas dépasser 3, sinon `draw_lives` ne suit pas.

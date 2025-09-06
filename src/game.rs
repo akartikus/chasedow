@@ -173,6 +173,8 @@ impl GameState {
         // One coin out of FREEZE_SPAWN_CHANCE freezes the shadow
         let kind = if gen_range(0, FREEZE_SPAWN_CHANCE) == 0 {
             CoinKind::FreezeShadow
+        } else if self.lives < INITIAL_LIVES && gen_range(0, EXTRA_LIFE_SPAWN_CHANCE) == 0 {
+            CoinKind::ExtraLife
         } else if gen_range(0, SPECIAL_SPAWN_CHANCE) == 0 {
             CoinKind::Special
         } else {
@@ -209,6 +211,11 @@ impl GameState {
                     CoinKind::Special => {
                         self.coin_points += COIN_SPECIAL_POINTS;
                         format!("+{}", COIN_SPECIAL_POINTS)
+                    }
+                    CoinKind::ExtraLife => {
+                        // Never go above the number of hearts that can be displayed
+                        self.lives = (self.lives + 1).min(INITIAL_LIVES);
+                        "+1 LIFE".to_string()
                     }
                     CoinKind::FreezeShadow => {
                         self.shadow_freeze = FREEZE_DURATION;

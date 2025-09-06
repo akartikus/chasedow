@@ -7,6 +7,7 @@ pub enum CoinKind {
     Normal,
     Special,
     FreezeShadow,
+    ExtraLife,
 }
 
 pub struct Coin {
@@ -42,6 +43,7 @@ impl Coin {
             let tint = match self.kind {
                 CoinKind::Normal => WHITE,
                 CoinKind::Special => SPECIAL_COIN_COLOR,
+                CoinKind::ExtraLife => EXTRA_LIFE_COLOR,
                 CoinKind::FreezeShadow => FREEZE_COLOR,
             };
             draw_texture_ex(
