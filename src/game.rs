@@ -43,6 +43,17 @@ pub enum GameScreen {
     GameOver,
 }
 
+/// Combo count after grabbing a coin: it grows if the previous coin was grabbed
+/// less than COMBO_WINDOW ago (`time_left` > 0), otherwise it restarts at 1.
+pub fn next_combo(combo: i32, time_left: f32) -> i32 {
+    if time_left > 0.0 { combo + 1 } else { 1 }
+}
+
+/// Points multiplier for a combo count, between 1 and COMBO_MAX.
+pub fn combo_multiplier(combo: i32) -> i32 {
+    combo.clamp(1, COMBO_MAX)
+}
+
 // Short-lived text that floats up and fades out (e.g. "+10")
 pub struct FloatingText {
     pub pos: Vec2,
@@ -71,6 +82,8 @@ pub struct GameState {
     pub floating_texts: Vec<FloatingText>,
     pub shadow_freeze: f32,
     pub hit_flash: f32,
+    pub combo: i32,
+    pub combo_timer: f32,
 }
 
 impl GameState {
@@ -104,6 +117,8 @@ impl GameState {
             floating_texts: Vec::new(),
             shadow_freeze: 0.0,
             hit_flash: 0.0,
+            combo: 0,
+            combo_timer: 0.0,
         }
     }
 
@@ -126,6 +141,8 @@ impl GameState {
         self.floating_texts.clear();
         self.shadow_freeze = 0.0;
         self.hit_flash = 0.0;
+        self.combo = 0;
+        self.combo_timer = 0.0;
     }
 
     pub fn handle_shadow_collision(&mut self) {
@@ -165,6 +182,15 @@ impl GameState {
         }
     }
 
+    /// Adds coin points with the combo multiplier applied and returns the points gained.
+    fn add_coin_points(&mut self, base: i32) -> i32 {
+        self.combo = next_combo(self.combo, self.combo_timer);
+        self.combo_timer = COMBO_WINDOW;
+        let gained = base * combo_multiplier(self.combo);
+        self.coin_points += gained;
+        gained
+    }
+
     pub fn spawn_coin(&mut self) {
         // Random position within window bounds
         let x = gen_range(0.0, WINDOW_WIDTH - COIN_SIZE.x);
@@ -196,6 +222,14 @@ impl GameState {
             self.coin_spawn_timer = COIN_SPAWN_INTERVAL;
         }
 
+        // The combo ends when the window runs out
+        if self.combo_timer > 0.0 {
+            self.combo_timer -= get_frame_time();
+            if self.combo_timer <= 0.0 {
+                self.combo = 0;
+            }
+        }
+
         // Update existing coins
         let player_pos = self.world.actor_pos(self.player.collider);
         let mut i = 0;
@@ -204,14 +238,8 @@ impl GameState {
                 self.coins.remove(i);
             } else if self.coins[i].collides_with_player(player_pos, PLAYER_SIZE) {
                 let text = match self.coins[i].kind {
-                    CoinKind::Normal => {
-                        self.coin_points += COIN_POINTS;
-                        format!("+{}", COIN_POINTS)
-                    }
-                    CoinKind::Special => {
-                        self.coin_points += COIN_SPECIAL_POINTS;
-                        format!("+{}", COIN_SPECIAL_POINTS)
-                    }
+                    CoinKind::Normal => format!("+{}", self.add_coin_points(COIN_POINTS)),
+                    CoinKind::Special => format!("+{}", self.add_coin_points(COIN_SPECIAL_POINTS)),
                     CoinKind::ExtraLife => {
                         // Never go above the number of hearts that can be displayed
                         self.lives = (self.lives + 1).min(INITIAL_LIVES);
@@ -586,11 +614,42 @@ impl GameState {
             );
         }
 
+        if self.combo > 1 {
+            draw_text(
+                &format!("Combo x{}", combo_multiplier(self.combo)),
+                10.0, 120.0, 20.0, TEXT_GOLD,
+            );
+        }
+
         // Add coin points to UI
         draw_text(
             &format!("Coins: {}", self.coin_points),
             10.0, 80.0, 20.0,
             TEXT_ACCENT
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn combo_restarts_when_the_window_is_over() {
+        assert_eq!(next_combo(0, 0.0), 1);
+        assert_eq!(next_combo(4, 0.0), 1);
+    }
+
+    #[test]
+    fn combo_grows_inside_the_window() {
+        assert_eq!(next_combo(1, 1.5), 2);
+        assert_eq!(next_combo(2, 0.1), 3);
+    }
+
+    #[test]
+    fn combo_multiplier_is_capped() {
+        assert_eq!(combo_multiplier(0), 1);
+        assert_eq!(combo_multiplier(3), 3);
+        assert_eq!(combo_multiplier(50), COMBO_MAX);
     }
 }

@@ -165,7 +165,7 @@ Constantes de couleur en haut du fichier (`TEXT_PRIMARY`, `TEXT_ACCENT`, `TEXT_G
 - **À faire** : `kind = ExtraLife`, rare (≈ 3 % des spawns). À la collecte : `self.lives = (self.lives + 1).min(INITIAL_LIVES)`. Ne pas dépasser 3, sinon `draw_lives` ne suit pas.
 - **Fait quand** : on ne peut jamais avoir plus de 3 vies, et ramasser l'objet à 3 vies ne casse rien.
 
-### 11. Combo de pièces
+### 11. Combo de pièces (FAIT)
 - **But** : récompenser l'enchaînement.
 - **Contexte** : `coin_points` s'incrémente de `COIN_POINTS` ; le score (`score`) ne compte pas les pièces. Choisir d'abord si les pièces doivent compter dans le score final : c'est une décision de design. Par défaut, **ne rien changer au score** et ne travailler que sur `coin_points`.
 - **À faire** : `combo: i32` et `combo_timer: f32` (2 s) dans `GameState`. À chaque pièce : si `combo_timer > 0`, `combo += 1`, sinon `combo = 1` ; puis `combo_timer = 2.0` ; points = `COIN_POINTS * combo.min(5)`. Décrémenter `combo_timer` dans `update_playing`. Afficher « xN » dans `draw_ui`. Remettre à zéro dans `reset_game()`.
