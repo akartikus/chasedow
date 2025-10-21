@@ -25,6 +25,7 @@ pub const PLATFORM_SIZE: Vec2 = vec2(200.0, 12.0);
 
 // Colors
 pub const PLAYER_COLOR: Color = Color::new(0.45, 0.26, 0.20, 1.0);  // Rustic brown for player
+pub const FADING_PLATFORM_COLOR: Color = Color::new(0.93, 0.80, 0.62, 1.0);  // Pale sand for fragile platforms
 pub const PLATFORM_COLOR: Color = Color::new(0.76, 0.60, 0.42, 1.0);  // Sandy beige for moving platforms
 pub const STATIC_PLATFORM_COLOR: Color = Color::new(0.87, 0.68, 0.45, 1.0);  // Light sand for static platforms
 pub const SHADOW_COLOR: Color = Color::new(0.2, 0.1, 0.05, 0.6);  // Dark sepia shadow
@@ -55,6 +56,9 @@ pub const EXTRA_LIFE_SPAWN_CHANCE: i32 = 30;  // One coin out of N is an extra l
 pub const EXTRA_LIFE_COLOR: Color = Color::new(0.9, 0.2, 0.25, 1.0);  // Tint of the extra life pickup
 pub const COMBO_WINDOW: f32 = 2.0;  // Seconds to grab the next coin and keep the combo going
 pub const COMBO_MAX: i32 = 5;       // Maximum points multiplier
+pub const FADE_WARNING_TIME: f32 = 1.0;   // Seconds between the first contact and the platform vanishing
+pub const FADE_GONE_TIME: f32 = 3.0;      // Seconds a fragile platform stays away
+pub const FADE_OFFSCREEN_OFFSET: f32 = 2000.0;  // Vanished platforms are parked this far below the screen
 pub const FREEZE_DURATION: f32 = 2.0;        // Seconds the shadow stays frozen after a freeze pickup
 pub const FREEZE_SPAWN_CHANCE: i32 = 8;       // One coin out of N is a freeze pickup
 pub const FREEZE_COLOR: Color = Color::new(0.5, 0.75, 1.0, 1.0);  // Tint of the freeze pickup

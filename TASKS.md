@@ -171,7 +171,7 @@ Constantes de couleur en haut du fichier (`TEXT_PRIMARY`, `TEXT_ACCENT`, `TEXT_G
 - **À faire** : `combo: i32` et `combo_timer: f32` (2 s) dans `GameState`. À chaque pièce : si `combo_timer > 0`, `combo += 1`, sinon `combo = 1` ; puis `combo_timer = 2.0` ; points = `COIN_POINTS * combo.min(5)`. Décrémenter `combo_timer` dans `update_playing`. Afficher « xN » dans `draw_ui`. Remettre à zéro dans `reset_game()`.
 - **Fait quand** : trois pièces en moins de 2 s chacune donnent 10, 20, 30.
 
-### 12. Plateformes qui disparaissent
+### 12. Plateformes qui disparaissent (FAIT)
 - **But** : nouveau type de plateforme (roadmap).
 - **Contexte** : `Platform` a `collider: Solid`, `speed`, `size`, `cacti`. `is_moving` est un booléen passé à `Platform::new`. Pour qu'une plateforme disparaisse, il faut la retirer de la physique : `Solid` n'a pas de flag « inactif », mais on peut le déplacer hors écran avec `world.set_solid_position` (et le remettre à sa position d'origine ensuite).
 - **À faire** : champ `kind: PlatformKind` (`Static`, `Moving`, `Fading`) en remplaçant le booléen, ou ajouter un second booléen `is_fading` pour minimiser les changements. Pour `Fading` : état (`Solid`, `Warning(timer)`, `Gone(timer)`). Le joueur doit toucher la plateforme pour lancer le compte : détecter avec `world.collide_check(player.collider, player_pos + (0,1))` sur ce solide, c'est plus simple de tester `player_rect` juste au-dessus du solide. Disparition 1 s après contact, retour 3 s plus tard. Rendu : alpha réduit pendant `Warning`, rien pendant `Gone`.

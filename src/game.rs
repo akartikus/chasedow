@@ -286,8 +286,9 @@ impl GameState {
         }
 
         // Update game elements
+        let player_pos = self.world.actor_pos(self.player.collider);
         for platform in self.platforms.iter_mut() {
-            platform.update(&mut self.world);
+            platform.update(&mut self.world, player_pos);
         }
 
         self.player.update(&mut self.world);
