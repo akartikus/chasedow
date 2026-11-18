@@ -161,7 +161,7 @@ impl GameState {
                 self.invulnerable_timer = INVULNERABILITY_DURATION;
                 self.hit_flash = HIT_FLASH_DURATION;
                 // Optional: Reset player position after hit
-                let mut new_pos = self.world.actor_pos(self.player.collider);
+                let new_pos = self.world.actor_pos(self.player.collider);
                 // new_pos.y -= 50.0; // Move player up a bit to avoid immediate re-collision
                 self.world.set_actor_position(self.player.collider, new_pos);
             }

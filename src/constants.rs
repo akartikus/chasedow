@@ -24,10 +24,12 @@ pub const GROUND_SIZE: Vec2 = vec2(800.0, 12.0);
 pub const PLATFORM_SIZE: Vec2 = vec2(200.0, 12.0);
 
 // Colors
+#[allow(dead_code)] // Only used by the commented debug drawing
 pub const PLAYER_COLOR: Color = Color::new(0.45, 0.26, 0.20, 1.0);  // Rustic brown for player
 pub const FADING_PLATFORM_COLOR: Color = Color::new(0.93, 0.80, 0.62, 1.0);  // Pale sand for fragile platforms
 pub const PLATFORM_COLOR: Color = Color::new(0.76, 0.60, 0.42, 1.0);  // Sandy beige for moving platforms
 pub const STATIC_PLATFORM_COLOR: Color = Color::new(0.87, 0.68, 0.45, 1.0);  // Light sand for static platforms
+#[allow(dead_code)] // Kept for the palette, the shadow uses the sprite
 pub const SHADOW_COLOR: Color = Color::new(0.2, 0.1, 0.05, 0.6);  // Dark sepia shadow
 pub const BACKGROUND_COLOR: Color = Color::new(0.98, 0.90, 0.75, 1.0);  // Bright, warm sunshine yellow
 
