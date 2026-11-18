@@ -65,5 +65,6 @@ pub const FREEZE_DURATION: f32 = 2.0;        // Seconds the shadow stays frozen 
 pub const FREEZE_SPAWN_CHANCE: i32 = 8;       // One coin out of N is a freeze pickup
 pub const FREEZE_COLOR: Color = Color::new(0.5, 0.75, 1.0, 1.0);  // Tint of the freeze pickup
 pub const HIT_FLASH_DURATION: f32 = 0.25;  // Seconds the screen flashes red after losing a life
+pub const SHAKE_AMPLITUDE: f32 = 8.0;  // Max screen shake offset (px) right after a hit
 pub const FLOATING_TEXT_LIFETIME: f32 = 0.7;  // Seconds a floating text stays visible
 pub const FLOATING_TEXT_SPEED: f32 = 30.0;    // Pixels per second, upwards

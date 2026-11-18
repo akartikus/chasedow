@@ -135,7 +135,7 @@ Constantes de couleur en haut du fichier (`TEXT_PRIMARY`, `TEXT_ACCENT`, `TEXT_G
 - **À faire** : calculer `dist = player_pos.distance(shadow_pos)`. En dessous d'un seuil (≈ 150 px), dessiner un cercle d'alerte discret ou teinter l'ombre (`Color` du `draw_texture_ex` en rouge-brun). Pas de nouvelle mécanique, uniquement visuel.
 - **Fait quand** : l'ombre change visiblement d'aspect quand elle approche, et redevient normale sinon.
 
-### 7. Flash ou secousse à la touche (FAIT, flash seulement)
+### 7. Flash ou secousse à la touche (FAIT)
 - **But** : retour visuel quand on perd une vie.
 - **Contexte** : `handle_shadow_collision` retire la vie et lance `invulnerable_timer`. Le clignotement existe déjà (`should_draw_player`), mais pas d'effet global.
 - **À faire** : champ `hit_flash: f32` posé à 0.2 s dans `handle_shadow_collision` (branche où le joueur survit) et décrémenté dans `update_playing`. Dans `draw_playing`, avant `draw_ui`, dessiner un `draw_rectangle` plein écran rouge avec alpha = `hit_flash * 2.0`. Option screen shake : `Camera2D` décalée aléatoirement, puis `set_default_camera()` avant `draw_ui` pour que l'UI ne tremble pas.

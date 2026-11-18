@@ -374,6 +374,20 @@ impl GameState {
     }
 
     pub fn draw_playing(&mut self) {
+        // Screen shake right after a hit, fading out with the flash (only while really playing,
+        // so a paused or game over screen does not jitter)
+        let shaking = self.screen == GameScreen::Playing && self.hit_flash > 0.0;
+        if shaking {
+            let amplitude = SHAKE_AMPLITUDE * self.hit_flash / HIT_FLASH_DURATION;
+            let offset = vec2(gen_range(-amplitude, amplitude), gen_range(-amplitude, amplitude));
+            set_camera(&Camera2D::from_display_rect(Rect::new(
+                offset.x,
+                offset.y,
+                screen_width(),
+                screen_height(),
+            )));
+        }
+
         // Draw coins
         for coin in &self.coins {
             coin.draw();
@@ -410,6 +424,11 @@ impl GameState {
             let mut color = TEXT_GOLD;
             color.a = (t.life / FLOATING_TEXT_LIFETIME).clamp(0.0, 1.0);
             draw_text(&t.text, t.pos.x, t.pos.y, 24.0, color);
+        }
+
+        // The flash and the UI do not shake
+        if shaking {
+            set_default_camera();
         }
 
         // Red flash when a life was just lost
